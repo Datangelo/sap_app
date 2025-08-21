@@ -1,0 +1,7 @@
+flask
+azure-identity
+azure-storage-blob
+gunicorn
+pandas
+openpyxl
+python-dotenv

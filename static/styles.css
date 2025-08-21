@@ -1,0 +1,197 @@
+body {
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #F7F7F8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 60px;
+    color: #353740;
+}
+
+.logo {
+    position: absolute;
+    top: 20px;
+    left: 30px;
+    font-family: 'Söhne', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 1.5rem;
+    color: #10A37F;
+    font-weight: bold;
+}
+
+.site-container {
+    background-color: #FFFFFF;
+    border-radius: 8px;
+    padding: 20px;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin: 30px 0;
+}
+
+h2 {
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: #111111;
+    margin-bottom: 15px;
+    margin-top: 5px;
+}
+
+.checkbox-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    padding: 10px 0;
+}
+
+.d-none {
+  display: none !important;
+}
+
+label {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: #353740;
+}
+
+input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+button {
+    background-color: #10A37F;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+    width: auto;
+    min-width: 100px;
+}
+
+button:hover {
+    background-color: #0D8D6F;
+}
+
+.loading {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(53, 55, 64, 0.8);
+    color: #FFFFFF;
+    padding: 20px;
+    border-radius: 8px;
+    z-index: 1000;
+    font-size: 1rem;
+}
+
+.close {
+    color: #ACACBE;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+.close:hover,
+.close:focus {
+    color: #353740;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#column_order {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#column_order li {
+    background-color: #F7F7F8;
+    border: 1px solid #D9D9E3;
+    border-radius: 4px;
+    margin: 5px 0;
+    padding: 10px;
+    cursor: move;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    color: #353740;
+    transition: background-color 0.3s ease;
+}
+
+#column_order li:hover {
+    background-color: #EAEAEA;
+}
+
+#column_order li .handle {
+    width: 20px;
+    height: 20px;
+    background: #10A37F;
+    border-radius: 4px;
+    cursor: move;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+#column_order li .handle::before {
+    content: '≡';
+}
+
+/* Navigation Styles */
+.site-navbar {
+    background-color: #FFFFFF; /* Match the background to your container */
+    padding: 15px 20px; /* Add padding for spacing */
+    width: 100%; /* Full width */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    position: relative; /* Position relative for absolute logo */
+    display: flex; /* Use flexbox for alignment */
+    align-items: center; /* Center align items vertically */
+    justify-content: space-between; /* Space out logo and links */
+}
+
+.nav-links {
+    list-style-type: none; /* Remove default list styles */
+    display: flex; /* Display links horizontally */
+    padding: 0; /* Remove padding */
+    margin: 0; /* Remove margin */
+}
+
+.nav-links li {
+    margin-right: 40px; /* Space between links */
+}
+
+.nav-links li:first-child {
+    margin-left: 30px; /* Add left margin to align with logo */
+}
+
+.nav-link {
+    text-decoration: none; /* Remove underline */
+    color: #353740; /* Use the same text color as the body */
+    font-weight: 500; /* Match font weight */
+    font-size: 14px; /* Consistent font size */
+    transition: color 0.3s; /* Smooth color transition on hover */
+}
+
+.nav-link:hover {
+    color: #10A37F; /* Use your primary color for hover effect */
+    text-decoration: underline; /* Underline on hover */
+}

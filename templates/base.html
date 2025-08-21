@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  {# page‐specific CSS/framework imports go here #}
+  {% block head %}{% endblock %}
+
+  {# then your overrides last #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
+  <title>{% block title %}BI App{% endblock %}</title>
+</head>
+<body>
+  <div class="logo">biapp</div>
+  <nav class="site-navbar">
+    <ul class="nav-links">
+      <li><a href="{{ url_for('index') }}"            class="nav-link">Home</a></li>
+      <li><a href="{{ url_for('x2cf') }}"   class="nav-link">X2CF</a></li>
+      <li><a href="{{ url_for('consolidate') }}" class="nav-link">Consolidate</a></li>
+    </ul>
+  </nav>
+
+  <div class="site-container">
+    {% block content %}{% endblock %}
+  </div>
+
+  <footer>
+    <p>
+      Cloud Ops BI Team – 
+      <a href="mailto:cloudbi@tdsynnex.com">cloudbi@tdsynnex.com</a>
+    </p>
+  </footer>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

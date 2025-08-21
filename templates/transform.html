@@ -1,0 +1,73 @@
+{% extends "base.html" %}  
+
+{% block title %}SAP{% endblock %}  
+
+{% block content %}  
+  <h1 class="mb-4 text-center">Upload & Transform Excel</h1>  
+  <form id="uploadForm">  
+    <input  
+      class="form-control mb-3"  
+      type="file"  
+      id="fileInput"  
+      name="file"  
+      accept=".xls,.xlsx"  
+      required  
+    />  
+    <button type="submit" id="submitBtn">Upload & Transform</button>  
+  </form>  
+
+  <div id="loading" class="text-center my-4 d-none">  
+    <div class="spinner-border text-primary" role="status">  
+      <span class="visually-hidden">Loading…</span>  
+    </div>  
+    <p class="mt-2">Processing, please wait…</p>  
+  </div>  
+
+  <div id="result" class="mt-4 text-center"></div>  
+{% endblock %}  
+
+{% block scripts %}  
+<script>  
+  const form      = document.getElementById('uploadForm');  
+  const fileInput = document.getElementById('fileInput');  
+  const submitBtn = document.getElementById('submitBtn');  
+  const loading   = document.getElementById('loading');  
+  const resultDiv = document.getElementById('result');  
+
+  form.addEventListener('submit', async e => {  
+    e.preventDefault();  
+    if (!fileInput.files.length) return;  
+
+    fileInput.disabled = true;  
+    submitBtn.disabled = true;  
+    resultDiv.innerHTML = '';  
+    loading.classList.remove('d-none');  
+
+    const formData = new FormData();  
+    formData.append('file', fileInput.files[0]);  
+
+    try {  
+      const res  = await fetch('/upload', { method: 'POST', body: formData });  
+      const data = await res.json();  
+      if (res.ok && data.download_url) {  
+        resultDiv.innerHTML = `  
+          <a href="${data.download_url}" class="btn btn-success">  
+            Download Transformed File  
+          </a>`;  
+      } else {  
+        resultDiv.innerHTML = `<div class="alert alert-danger">  
+          ${data.error || 'Upload failed'}  
+        </div>`;  
+      }  
+    } catch (err) {  
+      resultDiv.innerHTML = `<div class="alert alert-danger">  
+        Network error: ${err.message}  
+      </div>`;  
+    } finally {  
+      loading.classList.add('d-none');  
+      fileInput.disabled = false;  
+      submitBtn.disabled = false;  
+    }  
+  });  
+</script>  
+{% endblock %}

@@ -1,0 +1,64 @@
+{# templates/consolidated.html #}
+{% extends "base.html" %}
+
+{% block title %}Consolidate{% endblock %}
+
+{% block head %}
+  {# CSS, favicon, Sortable.js, viewport, fonts, etc. #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+
+  <div class="container">
+    <h2>Upload Files</h2>
+    <form id="upload-form" enctype="multipart/form-data">
+      <input type="file" name="file" id="file" multiple>
+      <div class="button-container">
+        <button type="submit">Upload</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="container" id="select-columns-container" style="display: none;">
+    <h2>Select Columns</h2>
+    <div id="columns-container" class="checkbox-group"></div>
+    <div class="button-container">
+      <button id="confirm-columns">Select</button>
+    </div>
+  </div>
+
+  <div class="container" id="group-by-container" style="display: none;">
+    <h2>Group By</h2>
+    <div id="group-by-checkboxes" class="checkbox-group"></div>
+  </div>
+
+  <div class="container" id="aggregation-container" style="display: none;">
+    <h2>Aggregations</h2>
+    <div id="aggregation-checkboxes" class="checkbox-group"></div>
+  </div>
+
+  <div class="container" id="order-by-container" style="display: none;">
+    <h2>Order By</h2>
+    <select id="order_by"></select>
+    <div id="order-by-checkboxes" class="checkbox-group"></div>
+  </div>
+
+  <div class="container" id="column-order-container" style="display: none;">
+    <h2>Column Order</h2>
+    <ul id="column_order" class="sortable"></ul>
+    <div class="button-container">
+      <button id="process-button">Download</button>
+    </div>
+  </div>
+
+  <div id="loading" class="loading" style="display: none;">Loading...</div>
+
+  {# Include your JS at the end of the body #}
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+{% endblock %}
