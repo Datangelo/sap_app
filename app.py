@@ -5,6 +5,7 @@ import pandas as pd
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
 from dotenv import load_dotenv
+from awstool import run_awstool
 import csv
 
 load_dotenv() 
@@ -28,6 +29,11 @@ def index():
 @app.route('/x2cf')
 def x2cf():
     return render_template('x2cf.html')
+
+@app.route("/awstool")
+def awstool():
+    result = run_awstool()  # call the function from awstool.py
+    return render_template("awstool.html", result=result)
 
 @app.route('/consolidate')
 def consolidate():
@@ -222,3 +228,4 @@ def process_file():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000)
+
