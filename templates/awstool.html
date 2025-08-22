@@ -1,7 +1,139 @@
-@app.route("/awstool")
-def awstool():
-    # 👇 Here you can run your Python script logic
-    # Example: run some function and pass results to template
-    result = "Aws Tool is coming soon!"
+# awstool.py
+import json
+import http.client
+import urllib.parse
+import pandas as pd
+from datetime import datetime, timedelta
+from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
+import io
 
-    return render_template("awstool.html", result=result)
+# Set your Key Vault URL
+KEYVAULT_URL = "https://gorkavault.vault.azure.net//"   
+
+def run_awstool():
+    """
+    Refresh tokens from Azure Key Vault, fetch report data from TDSynnex API,
+    return as a Pandas DataFrame (for now).
+    """
+
+    # 1) Connect to Key Vault
+    credential = DefaultAzureCredential()
+    secret_client = SecretClient(vault_url=KEYVAULT_URL, credential=credential)
+
+    # 2) Define which countries/accounts we want
+    country_cfg = {
+        "AT": {"secret_id": "AT", "ReportId": 49708, "Account_ID": 302}
+    }
+
+    token_rows = []
+    all_report_data = []
+
+    # 3) Loop through countries and refresh tokens
+    for country, cfg in country_cfg.items():
+        try:
+            # read latest secret
+            secret_bundle = secret_client.get_secret(cfg["secret_id"])
+            secret_json = json.loads(secret_bundle.value)
+
+            old_refresh = secret_json["refresh_key"]
+
+            # call refresh endpoint
+            conn = http.client.HTTPSConnection("ion.tdsynnex.com")
+            headers = {"Content-Type": "application/x-www-form-urlencoded"}
+            body = urllib.parse.urlencode({
+                "grant_type": "refresh_token",
+                "refresh_token": old_refresh
+            })
+            conn.request("POST", "/oauth/token", body, headers)
+            resp = conn.getresponse()
+            resp_json = json.loads(resp.read().decode("utf-8"))
+
+            new_refresh = resp_json["refresh_token"]
+            new_access = resp_json["access_token"]
+
+            # update secret in Key Vault
+            new_secret_value = json.dumps({
+                "refresh_key": new_refresh,
+                "access_key": new_access
+            })
+            secret_client.set_secret(cfg["secret_id"], new_secret_value)
+
+            token_rows.append({
+                "Country": country,
+                "ReportId": cfg["ReportId"],
+                "Account_ID": cfg["Account_ID"],
+                "Access_Token": new_access,
+            })
+
+        except Exception as e:
+            return f"Error refreshing token for {country}: {str(e)}"
+
+    if not token_rows:
+        return "No tokens retrieved"
+
+    merged_df = pd.DataFrame(token_rows)
+
+    # 4) Fetch reports
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=50)
+
+    end_date = end_date.strftime('%Y-%m-%dT%H:%M:%SZ')
+    start_date = start_date.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    def get_report_data_csv(account_id, report_id, bearer_token, start_date, end_date):
+        conn = http.client.HTTPSConnection("ion.tdsynnex.com")
+        payload = {
+            "report_id": report_id,
+            "report_module": "REPORTS_REPORTS_MODULE",
+            "category": "BILLING_REPORTS",
+            "specs": {
+                "date_range_option": {
+                    "selected_range": {
+                        "fixed_date_range": {
+                            "start_date": start_date,
+                            "end_date": end_date
+                        }
+                    }
+                }
+            }
+        }
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {bearer_token}"
+        }
+
+        conn.request(
+            "POST",
+            f"/api/v3/accounts/{account_id}/reports/{report_id}/reportDataCsv",
+            json.dumps(payload),
+            headers
+        )
+        res = conn.getresponse()
+        data = res.read().decode("utf-8")
+
+        if res.status != 200:
+            raise RuntimeError(f"HTTP {res.status} - {data}")
+
+        report_json = json.loads(data)
+        csv_data = report_json["results"]
+
+        df = pd.read_csv(io.StringIO(csv_data))
+        df["Country"] = country
+        return df
+
+    for _, row in merged_df.iterrows():
+        try:
+            df = get_report_data_csv(
+                row["Account_ID"],
+                row["ReportId"],
+                row["Access_Token"],
+                start_date,
+                end_date
+            )
+            all_report_data.append(df)
+        except Exception as e:
+            return f"Error fetching report for {row['Country']}: {str(e)}"
+
+    final_df = pd.concat(all_report_data, ignore_index=True) if all_report_data else pd.DataFrame()
+    return final_df
