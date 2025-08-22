@@ -6,7 +6,6 @@ from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
 from dotenv import load_dotenv
 import csv
-from awstool import run_awstool
 
 load_dotenv() 
 
@@ -41,16 +40,6 @@ def favicon():
         'favicon.ico',
         mimetype='image/x-icon'
     )
-
-@app.route("/awstool", methods=["GET", "POST"])
-def awstool():
-    if request.method == "POST":
-        start_date = request.form["start_date"]
-        end_date = request.form["end_date"]
-        df = run_awstool(start_date, end_date)
-        table_html = df.head(20).to_html(classes="table table-striped", index=False)
-        return render_template("awstool.html", table=table_html)
-    return render_template("awstool.html", table=None)
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
