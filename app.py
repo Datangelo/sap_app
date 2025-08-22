@@ -8,7 +8,6 @@ from dotenv import load_dotenv
 import csv
 from awstool import run_awstool
 
-
 load_dotenv() 
 
 app = Flask(__name__)
@@ -43,10 +42,15 @@ def favicon():
         mimetype='image/x-icon'
     )
 
-@app.route("/awstool")
+@app.route("/awstool", methods=["GET", "POST"])
 def awstool():
-    result = run_awstool()  # call the function from awstool.py
-    return render_template("awstool.html", result=result)
+    if request.method == "POST":
+        start_date = request.form["start_date"]
+        end_date = request.form["end_date"]
+        df = run_awstool(start_date, end_date)
+        table_html = df.head(20).to_html(classes="table table-striped", index=False)
+        return render_template("awstool.html", table=table_html)
+    return render_template("awstool.html", table=None)
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -60,7 +64,16 @@ def upload_file():
                        dtype=str)
 
     transformed_df = transform_sap(df)
-    csv_bytes = transformed_df.to_csv(index=False,header=False)
+    
+    #csv_bytes = transformed_df.to_csv(index=False,header=False)
+
+    # Use an in-memory buffer instead of writing to disk
+    buffer = BytesIO()
+    for line in transformed_df["merged"]:
+        buffer.write((line + "\n").encode("utf-8"))
+
+    csv_bytes = buffer.getvalue()
+
 
     base = uploaded.filename.rsplit('.', 1)[0]
     transformed_name = f"{base}_FTP.csv"
@@ -87,6 +100,10 @@ def download_file(filename):
     )
     
 def transform_sap(df: pd.DataFrame) -> pd.DataFrame:
+
+    def smart_quote(val):
+        val_str = str(val)
+        return f'"{val_str}"' if ',' in val_str else val_str
     
     
     df[["Sale Price","Cost Price"]] = df[["Sale Price","Cost Price"]].apply(pd.to_numeric, errors="coerce").round(2)
@@ -107,18 +124,19 @@ def transform_sap(df: pd.DataFrame) -> pd.DataFrame:
     line_df  .insert(0, "Type", "L")
 
     header_df["merged"] = (
-        header_df
-        .drop(columns="ID")
-        .fillna("")
-        .astype(str)
-        .agg(";".join, axis=1)
+    header_df
+    .drop(columns="ID")
+    .fillna("")
+    .applymap(smart_quote)
+    .agg(";".join, axis=1)
     )
+    
     line_df["merged"] = (
-        line_df
-        .drop(columns="ID")
-        .fillna("")
-        .astype(str)
-        .agg(";".join, axis=1)
+    line_df
+    .drop(columns="ID")
+    .fillna("")
+    .applymap(smart_quote)
+    .agg(";".join, axis=1)
     )
 
     header_out = header_df[["ID", "merged"]]
