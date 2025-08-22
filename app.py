@@ -30,10 +30,15 @@ def index():
 def x2cf():
     return render_template('x2cf.html')
 
-@app.route("/awstool")
+@app.route("/awstool", methods=["GET", "POST"])
 def awstool():
-    result = run_awstool()  # call the function from awstool.py
-    return render_template("awstool.html", result=result)
+    if request.method == "POST":
+        start_date = request.form["start_date"]
+        end_date = request.form["end_date"]
+        df = run_awstool(start_date, end_date)
+        table_html = df.head(20).to_html(classes="table table-striped", index=False)
+        return render_template("awstool.html", table=table_html)
+    return render_template("awstool.html", table=None)
 
 @app.route('/consolidate')
 def consolidate():
@@ -228,4 +233,5 @@ def process_file():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000)
+
 
