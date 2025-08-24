@@ -4,10 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  {# page‐specific CSS/framework imports go here #}
   {% block head %}{% endblock %}
 
-  {# then your overrides last #}
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
@@ -21,11 +19,10 @@
   <div class="logo">biapp</div>
   <nav class="site-navbar">
     <ul class="nav-links">
-      <li><a href="{{ url_for('index') }}"            class="nav-link">Home</a></li>
-      <li><a href="{{ url_for('x2cf') }}"   class="nav-link">X2CF</a></li>
+      <li><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
+      <li><a href="{{ url_for('x2cf') }}" class="nav-link">X2CF</a></li>
       <li><a href="{{ url_for('consolidate') }}" class="nav-link">Consolidate</a></li>
       <li><a href="{{ url_for('awstool') }}" class="nav-link">AWS Tool</a></li>
-
     </ul>
   </nav>
 
@@ -43,4 +40,3 @@
   {% block scripts %}{% endblock %}
 </body>
 </html>
-
