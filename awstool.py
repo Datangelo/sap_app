@@ -4,29 +4,36 @@ import json
 import http.client
 import urllib.parse
 import pandas as pd
-from datetime import datetime, timezone
+from datetime import datetime
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 
-# Key Vault setup
+# -----------------------
+# Azure Key Vault Setup
+# -----------------------
 VAULT_URL = "https://tds-bi-vault.vault.azure.net/"
 credential = DefaultAzureCredential()
 secret_client = SecretClient(vault_url=VAULT_URL, credential=credential)
 
-# Country configuration
+# -----------------------
+# Country Configuration
+# -----------------------
 country_cfg = {
     "BE": {"secret_id": "api-keys-BE", "GCP_Pricebook": 49709, "Account_ID": 301},
     "CH": {"secret_id": "api-keys-CH", "GCP_Pricebook": 49725, "Account_ID": 306},
     # Add more countries as needed
 }
 
+# -----------------------
+# Main Function
+# -----------------------
 def run_awstool(country: str, start_date: str, end_date: str):
     """
     Run AWS Tool: rotate token for selected country, fetch report, return preview.
     Inputs:
         - country: str, country code (e.g., "BE")
-        - start_date: str, YYYY-MM-DD
-        - end_date: str, YYYY-MM-DD
+        - start_date: str, "YYYY-MM-DD" from HTML form
+        - end_date: str, "YYYY-MM-DD" from HTML form
     Returns:
         dict with rotation_status and report preview or error.
     """
@@ -36,12 +43,16 @@ def run_awstool(country: str, start_date: str, end_date: str):
     cfg = country_cfg[country]
 
     try:
-        # 🔑 1. Get secret from Key Vault
+        # -----------------------
+        # 1. Get secret from Key Vault
+        # -----------------------
         secret_value = secret_client.get_secret(cfg["secret_id"]).value
         secret_json = json.loads(secret_value)
         old_refresh = secret_json["refresh_key"]
 
-        # 🔄 2. Refresh token
+        # -----------------------
+        # 2. Refresh token
+        # -----------------------
         conn = http.client.HTTPSConnection("ion.tdsynnex.com")
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         body = urllib.parse.urlencode({
@@ -61,14 +72,18 @@ def run_awstool(country: str, start_date: str, end_date: str):
             json.dumps({"refresh_key": new_refresh, "access_key": new_access})
         )
 
-        # 🔹 3. Convert input dates to protobuf Timestamp format
-        start_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0, tzinfo=timezone.utc)
-        end_dt   = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
+        # -----------------------
+        # 3. Convert dates to ISO 8601 UTC
+        # -----------------------
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        end_dt   = datetime.strptime(end_date, "%Y-%m-%d")
 
-        start_timestamp = {"seconds": int(start_dt.timestamp()), "nanos": 0}
-        end_timestamp   = {"seconds": int(end_dt.timestamp()), "nanos": 0}
+        start_date_iso = start_dt.strftime('%Y-%m-%dT00:00:00Z')
+        end_date_iso   = end_dt.strftime('%Y-%m-%dT23:59:59Z')
 
-        # 🔹 4. Fetch report
+        # -----------------------
+        # 4. Fetch report
+        # -----------------------
         payload = {
             "report_id": cfg["GCP_Pricebook"],
             "report_module": "REPORTS_REPORTS_MODULE",
@@ -77,8 +92,8 @@ def run_awstool(country: str, start_date: str, end_date: str):
                 "date_range_option": {
                     "selected_range": {
                         "fixed_date_range": {
-                            "start_date": start_timestamp,
-                            "end_date": end_timestamp
+                            "start_date": start_date_iso,
+                            "end_date": end_date_iso
                         }
                     }
                 }
