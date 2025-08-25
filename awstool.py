@@ -4,7 +4,7 @@ import json
 import http.client
 import urllib.parse
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 
@@ -17,22 +17,18 @@ secret_client = SecretClient(vault_url=VAULT_URL, credential=credential)
 country_cfg = {
     "BE": {"secret_id": "api-keys-BE", "GCP_Pricebook": 49709, "Account_ID": 301},
     "CH": {"secret_id": "api-keys-CH", "GCP_Pricebook": 49725, "Account_ID": 306},
-    # Add more countries here if needed
+    # Add more countries as needed
 }
 
-def to_iso8601(date_str, end_of_day=False):
-    """
-    Convert YYYY-MM-DD string to ISO 8601 timestamp.
-    If end_of_day=True, set time to 23:59:59
-    """
-    dt = datetime.strptime(date_str, "%Y-%m-%d")
-    if end_of_day:
-        dt = dt.replace(hour=23, minute=59, second=59)
-    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-
-def run_awstool(country: str, start_date: str = None, end_date: str = None):
+def run_awstool(country: str, start_date: str, end_date: str):
     """
     Run AWS Tool: rotate token for selected country, fetch report, return preview.
+    Inputs:
+        - country: str, country code (e.g., "BE")
+        - start_date: str, YYYY-MM-DD
+        - end_date: str, YYYY-MM-DD
+    Returns:
+        dict with rotation_status and report preview or error.
     """
     if country not in country_cfg:
         return {"error": f"Country {country} not supported."}
@@ -40,12 +36,12 @@ def run_awstool(country: str, start_date: str = None, end_date: str = None):
     cfg = country_cfg[country]
 
     try:
-        # 1️⃣ Get current secret from Key Vault
+        # 🔑 1. Get secret from Key Vault
         secret_value = secret_client.get_secret(cfg["secret_id"]).value
         secret_json = json.loads(secret_value)
         old_refresh = secret_json["refresh_key"]
 
-        # 2️⃣ Refresh token
+        # 🔄 2. Refresh token
         conn = http.client.HTTPSConnection("ion.tdsynnex.com")
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         body = urllib.parse.urlencode({
@@ -59,22 +55,19 @@ def run_awstool(country: str, start_date: str = None, end_date: str = None):
         new_refresh = resp_json["refresh_token"]
         new_access = resp_json["access_token"]
 
-        # 3️⃣ Update secret in Key Vault
+        # Update secret in Key Vault
         secret_client.set_secret(
             cfg["secret_id"],
             json.dumps({"refresh_key": new_refresh, "access_key": new_access})
         )
 
-        # 4️⃣ Prepare date range
-        if not end_date:
-            end_date = datetime.now().strftime("%Y-%m-%d")
-        if not start_date:
-            start_date = (datetime.now() - timedelta(days=50)).strftime("%Y-%m-%d")
+        # 🔹 3. Convert input dates to RFC3339 timestamp
+        start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        end_date_dt   = datetime.strptime(end_date, "%Y-%m-%d")
+        start_date_rfc = start_date_dt.strftime("%Y-%m-%dT00:00:00Z")
+        end_date_rfc   = end_date_dt.strftime("%Y-%m-%dT23:59:59Z")
 
-        start_date_iso = to_iso8601(start_date)
-        end_date_iso = to_iso8601(end_date, end_of_day=True)
-
-        # 5️⃣ Fetch report
+        # 🔹 4. Fetch report
         payload = {
             "report_id": cfg["GCP_Pricebook"],
             "report_module": "REPORTS_REPORTS_MODULE",
@@ -83,8 +76,8 @@ def run_awstool(country: str, start_date: str = None, end_date: str = None):
                 "date_range_option": {
                     "selected_range": {
                         "fixed_date_range": {
-                            "start_date": start_date_iso,
-                            "end_date": end_date_iso
+                            "start_date": start_date_rfc,
+                            "end_date": end_date_rfc
                         }
                     }
                 }
@@ -114,6 +107,7 @@ def run_awstool(country: str, start_date: str = None, end_date: str = None):
         df = pd.read_csv(io.StringIO(csv_data))
         df["Country"] = country
 
+        # Return preview (first 5 rows)
         return {
             "rotation_status": "success",
             "country": country,
