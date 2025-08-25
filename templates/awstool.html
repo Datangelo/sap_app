@@ -1,7 +1,52 @@
-@app.route("/awstool")
-def awstool():
-    # 👇 Here you can run your Python script logic
-    # Example: run some function and pass results to template
-    result = "Aws Tool is coming soon!"
+{% extends "base.html" %}
 
-    return render_template("awstool.html", result=result)
+{% block title %}AWS Tool{% endblock %}
+
+{% block content %}
+<h2>AWS Tool</h2>
+
+<form method="POST">
+  <label for="country">Country:</label>
+  <select name="country" id="country" required>
+    <option value="">-- Select --</option>
+    <option value="BE">Belgium (BE)</option>
+    <option value="CH">Switzerland (CH)</option>
+    <!-- add more -->
+  </select>
+  <br><br>
+
+  <label for="start_date">Start Date:</label>
+  <input type="date" name="start_date" required>
+  <br><br>
+
+  <label for="end_date">End Date:</label>
+  <input type="date" name="end_date" required>
+  <br><br>
+
+  <button type="submit">Run Tool</button>
+</form>
+
+{% if result %}
+  <h3>Result:</h3>
+  {% if result.error %}
+    <p style="color:red;">Error: {{ result.error }}</p>
+  {% else %}
+    <p>Rotation Status: {{ result.rotation_status }}</p>
+    <p>Country: {{ result.country }}</p>
+    <table border="1">
+      <tr>
+        {% for col in result.rows[0].keys() %}
+          <th>{{ col }}</th>
+        {% endfor %}
+      </tr>
+      {% for row in result.rows %}
+        <tr>
+          {% for val in row.values() %}
+            <td>{{ val }}</td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </table>
+  {% endif %}
+{% endif %}
+{% endblock %}
