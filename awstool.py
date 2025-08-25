@@ -4,7 +4,7 @@ import json
 import http.client
 import urllib.parse
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 
@@ -61,11 +61,12 @@ def run_awstool(country: str, start_date: str, end_date: str):
             json.dumps({"refresh_key": new_refresh, "access_key": new_access})
         )
 
-        # 🔹 3. Convert input dates to RFC3339 timestamp
-        start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0, tzinfo=timezone.utc)
-        end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
-        start_date_rfc = start_date_dt.isoformat().replace('+00:00', 'Z')
-        end_date_rfc = end_date_dt.isoformat().replace('+00:00', 'Z')
+        # 🔹 3. Convert input dates to protobuf Timestamp format
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0, tzinfo=timezone.utc)
+        end_dt   = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
+
+        start_timestamp = {"seconds": int(start_dt.timestamp()), "nanos": 0}
+        end_timestamp   = {"seconds": int(end_dt.timestamp()), "nanos": 0}
 
         # 🔹 4. Fetch report
         payload = {
@@ -76,8 +77,8 @@ def run_awstool(country: str, start_date: str, end_date: str):
                 "date_range_option": {
                     "selected_range": {
                         "fixed_date_range": {
-                            "start_date": start_date_rfc,
-                            "end_date": end_date_rfc
+                            "start_date": start_timestamp,
+                            "end_date": end_timestamp
                         }
                     }
                 }
@@ -116,4 +117,3 @@ def run_awstool(country: str, start_date: str, end_date: str):
 
     except Exception as e:
         return {"error": str(e)}
-
