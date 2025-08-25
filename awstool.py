@@ -62,10 +62,10 @@ def run_awstool(country: str, start_date: str, end_date: str):
         )
 
         # 🔹 3. Convert input dates to RFC3339 timestamp
-        start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
-        end_date_dt   = datetime.strptime(end_date, "%Y-%m-%d")
-        start_date_rfc = start_date_dt.strftime("%Y-%m-%dT00:00:00Z")
-        end_date_rfc   = end_date_dt.strftime("%Y-%m-%dT23:59:59Z")
+        start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0, tzinfo=timezone.utc)
+        end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
+        start_date_rfc = start_date_dt.isoformat().replace('+00:00', 'Z')
+        end_date_rfc = end_date_dt.isoformat().replace('+00:00', 'Z')
 
         # 🔹 4. Fetch report
         payload = {
@@ -116,3 +116,4 @@ def run_awstool(country: str, start_date: str, end_date: str):
 
     except Exception as e:
         return {"error": str(e)}
+
