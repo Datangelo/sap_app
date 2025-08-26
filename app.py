@@ -234,7 +234,11 @@ def process_file():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8000)
+    # Use PORT environment variable if set (Azure App Service assigns it)
+    port = int(os.environ.get("PORT", 8000))  # fallback to 8000 for local testing
+    app.run(host='0.0.0.0', port=port)
+    
+
 
 
 
