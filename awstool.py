@@ -19,8 +19,9 @@ secret_client = SecretClient(vault_url=VAULT_URL, credential=credential)
 # Country Configuration
 # -----------------------
 country_cfg = {
-    "BE": {"secret_id": "api-keys-BE", "AWS": 24921, "Account_ID": 301},
-    "AT": {"secret_id": "api-keys-AT", "AWS": 24917, "Account_ID": 302},
+    "BE": {"secret_id": "api-keys-BE", "AWS": 57272, "Account_ID": 301},
+    "AT": {"secret_id": "api-keys-AT", "AWS": 57269, "Account_ID": 302},
+    "ES": {"secret_id": "api-keys-ES", "AWS": 57271, "Account_ID": 394},
     # Add more countries as needed
 }
 
@@ -132,4 +133,5 @@ def run_awstool(country: str, start_date: str, end_date: str):
 
     except Exception as e:
         return {"error": str(e)}
+
 
