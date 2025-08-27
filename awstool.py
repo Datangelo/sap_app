@@ -19,8 +19,8 @@ secret_client = SecretClient(vault_url=VAULT_URL, credential=credential)
 # Country Configuration
 # -----------------------
 country_cfg = {
-    "BE": {"secret_id": "api-keys-BE", "GCP_Pricebook": 49709, "Account_ID": 301},
-    "CH": {"secret_id": "api-keys-CH", "GCP_Pricebook": 49725, "Account_ID": 306},
+    "BE": {"secret_id": "api-keys-BE", "AWS": 24921, "Account_ID": 301},
+    "AT": {"secret_id": "api-keys-AT", "AWS": 24917, "Account_ID": 302},
     # Add more countries as needed
 }
 
@@ -85,7 +85,7 @@ def run_awstool(country: str, start_date: str, end_date: str):
         # 4. Fetch report
         # -----------------------
         payload = {
-            "report_id": cfg["GCP_Pricebook"],
+            "report_id": cfg["AWS"],
             "report_module": "REPORTS_REPORTS_MODULE",
             "category": "BILLING_REPORTS",
             "specs": {
@@ -107,7 +107,7 @@ def run_awstool(country: str, start_date: str, end_date: str):
 
         conn.request(
             "POST",
-            f"/api/v3/accounts/{cfg['Account_ID']}/reports/{cfg['GCP_Pricebook']}/reportDataCsv",
+            f"/api/v3/accounts/{cfg['Account_ID']}/reports/{cfg['AWS']}/reportDataCsv",
             json.dumps(payload),
             headers
         )
@@ -132,3 +132,4 @@ def run_awstool(country: str, start_date: str, end_date: str):
 
     except Exception as e:
         return {"error": str(e)}
+
