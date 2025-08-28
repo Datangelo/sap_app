@@ -184,6 +184,7 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
             if dfs:
                 final_df = pd.concat(dfs, ignore_index=True)
                 del dfs
+                
 
         # --- Step 3: Group + merge ---
         grouped = df_country.groupby(
@@ -213,14 +214,22 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
         }
         Billing_report.rename(columns=rename_mapping, inplace=True)
 
+        # Prepare output 
+        final_df_count = len(final_df) if final_df is not None else 0 
+        if final_df_count == 0:
+            final_df_message = "EMEA rolling report is empty or API calls failed."
+        else:
+            final_df_message = f"EMEA rolling report contains {final_df_count} rows."
+
         # Return small preview to keep memory low
         return {
+            "final_df_message": final_df_message,
             "status": "success",
             "country": country,
-            "rows": Billing_report.head(10).to_dict(orient="records"),
-            "final_df_rows": len(final_df) if final_df is not None else 0
+            "rows": Billing_report.head(10).to_dict(orient="records")
         }
 
     except Exception as e:
         return {"error": str(e)}
+
 
