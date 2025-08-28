@@ -22,8 +22,9 @@ country_cfg = {
     "BE": {"secret_id": "api-keys-BE", "AWS": 57272, "Account_ID": 301},
     "AT": {"secret_id": "api-keys-AT", "AWS": 57269, "Account_ID": 302},
     "ES": {"secret_id": "api-keys-ES", "AWS": 57271, "Account_ID": 394},
-    "EMEA": {"secret_id": "api-keys-EMEA", "AWS": 57273, "Account_ID": 240},
 }
+
+emea_cfg = {"secret_id": "api-keys-EMEA", "AWS": 57273, "Account_ID": 240}
 
 # -----------------------
 # Helper: Refresh token
@@ -59,14 +60,12 @@ def refresh_token(cfg):
 # -----------------------
 # Main Function
 # -----------------------
-def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=None):
+def run_awstool(country: str, start_date: str, end_date: str):
     """
     Run AWS Tool:
     1. Fetch country-level report (date range from HTML).
-    2. Fetch rolling 1-year EMEA reports (if merged_df_EMEA is provided).
+    2. Fetch rolling 1-year EMEA report.
     3. Merge/group both datasets into Billing_report.
-
-    Returns dict with final merged DataFrame (preview) or error.
     """
     try:
         # --- Step 1: Country-specific report ---
@@ -82,8 +81,8 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
         start_iso = start_dt.strftime('%Y-%m-%dT00:00:00Z')
         end_iso   = end_dt.strftime('%Y-%m-%dT23:59:59Z')
 
-        # Request
-        payload = {
+        # Request payload
+        payload_country = {
             "report_id": cfg_country["AWS"],
             "report_module": "REPORTS_REPORTS_MODULE",
             "category": "BILLING_REPORTS",
@@ -101,7 +100,7 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
         conn.request(
             "POST",
             f"/api/v3/accounts/{cfg_country['Account_ID']}/reports/{cfg_country['AWS']}/reportDataCsv",
-            json.dumps(payload),
+            json.dumps(payload_country),
             headers
         )
         res = conn.getresponse()
@@ -113,6 +112,7 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
         report_json = json.loads(data)
         df_country = pd.read_csv(io.StringIO(report_json["results"]))
 
+        # Normalize country df
         df_country.columns = df_country.columns.str.replace('SAP_ID', 'SAP ID')
         df_country['Country'] = country
 
@@ -126,67 +126,44 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
         df_country.columns = df_country.columns.str.replace(
             r'Sales Price Of Unit \((EUR|GBP|NOK|SEK|CHF|DKK|USD|AUD|CAD|HKD|INR)\)', 'Sales Price Of Unit', regex=True)
 
-        del data, report_json
+        # --- Step 2: EMEA rolling report ---
+        access_token_emea = refresh_token(emea_cfg)
 
-        # --- Step 2: EMEA rolling 1-year reports ---
-        final_df = None
-        if merged_df_EMEA is not None and not merged_df_EMEA.empty:
-            cfg_emea = country_cfg["EMEA"]
-            access_token_emea = refresh_token(cfg_emea)
-            account_id = cfg_emea["Account_ID"]
-            report_id = cfg_emea["AWS"]
+        end_dt = datetime.utcnow()
+        start_dt = end_dt - timedelta(days=365)
+        start_iso = start_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+        end_iso   = end_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
 
-            end_dt = datetime.utcnow()
-            start_dt = end_dt - timedelta(days=365)
-            start_iso = start_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
-            end_iso   = end_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
-
-            payload_emea = {
-                "report_id": report_id,
-                "report_module": "REPORTS_REPORTS_MODULE",
-                "category": "BILLING_REPORTS",
-                "specs": {
-                    "date_range_option": {
-                        "selected_range": {
-                            "fixed_date_range": {"start_date": start_iso, "end_date": end_iso}
-                        }
+        payload_emea = {
+            "report_id": emea_cfg["AWS"],
+            "report_module": "REPORTS_REPORTS_MODULE",
+            "category": "BILLING_REPORTS",
+            "specs": {
+                "date_range_option": {
+                    "selected_range": {
+                        "fixed_date_range": {"start_date": start_iso, "end_date": end_iso}
                     }
                 }
             }
+        }
 
-            headers_emea = {"Content-Type": "application/json", "Authorization": f"Bearer {access_token_emea}"}
-            conn = http.client.HTTPSConnection("ion.tdsynnex.com")
+        headers_emea = {"Content-Type": "application/json", "Authorization": f"Bearer {access_token_emea}"}
+        conn.request(
+            "POST",
+            f"/api/v3/accounts/{emea_cfg['Account_ID']}/reports/{emea_cfg['AWS']}/reportDataCsv",
+            json.dumps(payload_emea),
+            headers_emea
+        )
+        res = conn.getresponse()
+        data = res.read().decode("utf-8")
 
-            dfs = []
-            for idx, row in merged_df_EMEA.iterrows():
-                customer_report_id = row["END_CUSTOMER"]
-                conn.request(
-                    "POST",
-                    f"/api/v3/accounts/{account_id}/reports/{customer_report_id}/reportDataCsv",
-                    json.dumps(payload_emea),
-                    headers_emea
-                )
-                res = conn.getresponse()
-                data = res.read().decode("utf-8")
+        if res.status != 200:
+            return {"error": f"EMEA failed: HTTP {res.status} - {data}"}
 
-                if res.status == 200:
-                    try:
-                        report_json = json.loads(data)
-                        df_emea = pd.read_csv(io.StringIO(report_json["results"]))
-                        df_emea["END_CUSTOMER"] = customer_report_id
-                        dfs.append(df_emea)
-                        del df_emea
-                    except Exception as e:
-                        print(f"[EMEA] Error processing report {customer_report_id}: {e}")
-                else:
-                    print(f"[EMEA] Error fetching report {customer_report_id}: {data}")
+        report_json = json.loads(data)
+        final_df = pd.read_csv(io.StringIO(report_json["results"]))
 
-            if dfs:
-                final_df = pd.concat(dfs, ignore_index=True)
-                del dfs
-                
-
-        # --- Step 3: Group + merge ---
+        # --- Step 3: Merge ---
         grouped = df_country.groupby(
             ['Reseller Name','Cloud Account Number', 'Product Name','SAP ID (customer)']
         )[['Seller Cost', 'Customer Cost']].sum().reset_index()
@@ -206,6 +183,7 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
         else:
             Billing_report = grouped.copy()
 
+        # Rename for clarity
         rename_mapping = {
             "Cloud Account Number": "Account",
             "SAP ID (customer)": "SAP_ID",
@@ -216,12 +194,8 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
 
         # Prepare output 
         final_df_count = len(final_df) if final_df is not None else 0 
-        if final_df_count == 0:
-            final_df_message = "EMEA rolling report is empty or API calls failed."
-        else:
-            final_df_message = f"EMEA rolling report contains {final_df_count} rows."
+        final_df_message = f"EMEA rolling report contains {final_df_count} rows." if final_df_count > 0 else "EMEA rolling report is empty or API failed."
 
-        # Return small preview to keep memory low
         return {
             "final_df_message": final_df_message,
             "country": country,
@@ -230,11 +204,3 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
 
     except Exception as e:
         return {"error": str(e)}
-
-
-
-
-
-
-
-
