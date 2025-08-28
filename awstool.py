@@ -198,7 +198,7 @@ def run_awstool(country: str, start_date: str, end_date: str):
 
         # Prepare output 
         final_df_count = len(final_df) if final_df is not None else 0 
-        final_df_message = f"EMEA rolling report contains {final_df_count} rows." if final_df_count > 0 else "EMEA rolling report is empty or API failed."
+        final_df_message = f"CIao Mamma guarda come mi diverto !!!!"
 
         return {
             "final_df_message": final_df_message,
@@ -208,4 +208,5 @@ def run_awstool(country: str, start_date: str, end_date: str):
 
     except Exception as e:
         return {"error": str(e)}
+
 
