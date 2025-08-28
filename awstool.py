@@ -114,6 +114,15 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
         report_json = json.loads(data)
         df_country = pd.read_csv(io.StringIO(report_json["results"]))
 
+        df_country.columns = df_country.columns.str.replace('SAP_ID', 'SAP ID')
+
+        df_country['Country'] = country
+
+        df_country.columns = df_country.columns.str.replace(r'Seller Cost \((EUR|GBP|NOK|SEK|CHF|DKK|USD|AUD|CAD|HKD|INR)\)', 'Seller Cost', regex=True)
+        df_country.columns = df_country.columns.str.replace(r'Customer Cost \((EUR|GBP|NOK|SEK|CHF|DKK|USD|AUD|CAD|HKD|INR)\)', 'Customer Cost', regex=True)
+        df_country.columns = df_country.columns.str.replace(r'Margin \((EUR|GBP|NOK|SEK|CHF|DKK|USD|AUD|CAD|HKD|INR)\)', 'Margin', regex=True)
+        df_country.columns = df_country.columns.str.replace(r'Sales Price Of Unit \((EUR|GBP|NOK|SEK|CHF|DKK|USD|AUD|CAD|HKD|INR)\)', 'Sales Price Of Unit', regex=True)
+
         # Free memory (discard raw)
         del data, report_json
 
@@ -207,3 +216,4 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
 
     except Exception as e:
         return {"error": str(e)}
+
