@@ -223,13 +223,15 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
 
         # Return small preview to keep memory low
         return {
+            "final_df_message": final_df_message,
             "status": "success",
             "country": country,
-            "rows": final_df.head(10).to_dict(orient="records")
+            "rows": Billing_report.head(10).to_dict(orient="records")
         }
 
     except Exception as e:
         return {"error": str(e)}
+
 
 
 
