@@ -22,7 +22,7 @@ country_cfg = {
     "BE": {"secret_id": "api-keys-BE", "AWS": 57272, "Account_ID": 301},
     "AT": {"secret_id": "api-keys-AT", "AWS": 57269, "Account_ID": 302},
     "ES": {"secret_id": "api-keys-ES", "AWS": 57271, "Account_ID": 394},
-    "EMEA": {"secret_id": "api-keys-EMEA", "AWS": 21459, "Account_ID": 240},
+    "EMEA": {"secret_id": "api-keys-EMEA", "AWS": 57273, "Account_ID": 240},
 }
 
 # -----------------------
@@ -223,7 +223,6 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
 
         # Return small preview to keep memory low
         return {
-            "final_df_message": final_df_message,
             "status": "success",
             "country": country,
             "rows": Billing_report.head(10).to_dict(orient="records")
@@ -231,6 +230,7 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
 
     except Exception as e:
         return {"error": str(e)}
+
 
 
 
