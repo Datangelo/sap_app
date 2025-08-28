@@ -76,6 +76,7 @@ def run_awstool(country: str, start_date: str, end_date: str):
 
         cfg_country = country_cfg[country]
         access_token_country = refresh_token(cfg_country)
+        
 
         # Dates → ISO8601
         start_dt = datetime.strptime(start_date, "%Y-%m-%d")
@@ -131,7 +132,7 @@ def run_awstool(country: str, start_date: str, end_date: str):
         # --- Step 2: EMEA rolling report ---
 
         cfg_emea = emea_cfg["EMEA"]
-        access_token_country = refresh_token(cfg_emea)
+        access_token_emea = refresh_token(cfg_emea)
 
         end_dt = datetime.utcnow()
         start_dt = end_dt - timedelta(days=365)
@@ -208,5 +209,6 @@ def run_awstool(country: str, start_date: str, end_date: str):
 
     except Exception as e:
         return {"error": str(e)}
+
 
 
