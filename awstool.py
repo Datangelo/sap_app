@@ -24,7 +24,9 @@ country_cfg = {
     "ES": {"secret_id": "api-keys-ES", "AWS": 57271, "Account_ID": 394},
 }
 
-emea_cfg = {"secret_id": "api-keys-EMEA", "AWS": 57273, "Account_ID": 240}
+emea_cfg = {
+    "EMEA": {"secret_id": "api-keys-EMEA", "AWS": 57273, "Account_ID": 240},
+}
 
 # -----------------------
 # Helper: Refresh token
@@ -127,7 +129,9 @@ def run_awstool(country: str, start_date: str, end_date: str):
             r'Sales Price Of Unit \((EUR|GBP|NOK|SEK|CHF|DKK|USD|AUD|CAD|HKD|INR)\)', 'Sales Price Of Unit', regex=True)
 
         # --- Step 2: EMEA rolling report ---
-        access_token_emea = refresh_token(emea_cfg)
+
+        cfg_emea = emea_cfg["EMEA"]
+        access_token_country = refresh_token(cfg_emea)
 
         end_dt = datetime.utcnow()
         start_dt = end_dt - timedelta(days=365)
@@ -135,7 +139,7 @@ def run_awstool(country: str, start_date: str, end_date: str):
         end_iso   = end_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
 
         payload_emea = {
-            "report_id": emea_cfg["AWS"],
+            "report_id": cfg_emea["AWS"],
             "report_module": "REPORTS_REPORTS_MODULE",
             "category": "BILLING_REPORTS",
             "specs": {
@@ -150,7 +154,7 @@ def run_awstool(country: str, start_date: str, end_date: str):
         headers_emea = {"Content-Type": "application/json", "Authorization": f"Bearer {access_token_emea}"}
         conn.request(
             "POST",
-            f"/api/v3/accounts/{emea_cfg['Account_ID']}/reports/{emea_cfg['AWS']}/reportDataCsv",
+            f"/api/v3/accounts/{cfg_emea['Account_ID']}/reports/{cfg_emea['AWS']}/reportDataCsv",
             json.dumps(payload_emea),
             headers_emea
         )
@@ -204,3 +208,4 @@ def run_awstool(country: str, start_date: str, end_date: str):
 
     except Exception as e:
         return {"error": str(e)}
+
