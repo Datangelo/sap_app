@@ -128,8 +128,11 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
 
         # --- Step 2: EMEA rolling 1-year reports ---
         final_df = None
-        if merged_df_EMEA is not None and not merged_df_EMEA.empty:
-            cfg_emea = country_cfg["EMEA"]
+        cfg_emea = country_cfg["EMEA"]
+
+
+        
+        if cfg_emea:
             access_token_emea = refresh_token(cfg_emea)
 
             end_dt = datetime.utcnow()
@@ -137,12 +140,10 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
             start_iso = start_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
             end_iso   = end_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
 
-            dfs = []
-            conn = http.client.HTTPSConnection("ion.tdsynnex.com")
+            account_id = cfg_emea["Account_ID"]  
+            report_id  = cfg_emea["AWS"]
 
-            for idx, row in merged_df_EMEA.iterrows():
-                report_id = row["END_CUSTOMER"]
-                payload = {
+            payload = {
                     "report_id": report_id,
                     "report_module": "REPORTS_REPORTS_MODULE",
                     "category": "BILLING_REPORTS",
@@ -153,30 +154,24 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
                             }
                         }
                     }
-                }
+            }
 
-                headers = {"Content-Type": "application/json", "Authorization": f"Bearer {access_token_emea}"}
-                conn.request("POST",
-                             f"/api/v3/accounts/{cfg_emea['Account_ID']}/reports/{report_id}/reportDataCsv",
-                             json.dumps(payload),
-                             headers)
-                res = conn.getresponse()
-                data = res.read().decode("utf-8")
+            headers = {"Content-Type": "application/json",
+                       "Authorization": f"Bearer {access_token_emea}"}
 
-                if res.status != 200:
-                    continue
+            conn = http.client.HTTPSConnection("ion.tdsynnex.com")
+            conn.request("POST", f"/api/v3/accounts/{account_id}/reports/{report_id}/reportDataCsv",
+                 json.dumps(payload), headers)
+            
+            res = conn.getresponse()
+            data = res.read().decode("utf-8")
 
+            if res.status != 200:
                 try:
                     report_json = json.loads(data)
-                    df = pd.read_csv(io.StringIO(report_json["results"]))
-                    df["END_CUSTOMER"] = report_id
-                    dfs.append(df)
-                except Exception:
-                    continue
+                    csv_data = report_json["results"]
 
-            if dfs:
-                final_df = pd.concat(dfs, ignore_index=True)
-                del dfs  # free memory
+                    final_df = pd.read_csv(io.StringIO(csv_data))
 
         # --- Step 3: Group + merge ---
         grouped = df_country.groupby(
@@ -216,4 +211,5 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
 
     except Exception as e:
         return {"error": str(e)}
+
 
