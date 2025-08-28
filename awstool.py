@@ -225,11 +225,12 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
         return {
             "status": "success",
             "country": country,
-            "rows": Billing_report.head(10).to_dict(orient="records")
+            "rows": final_df.head(10).to_dict(orient="records")
         }
 
     except Exception as e:
         return {"error": str(e)}
+
 
 
 
