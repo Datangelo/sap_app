@@ -32,27 +32,16 @@
   {% if result.error %}
     <p style="color:red;">Error: {{ result.error }}</p>
   {% else %}
-    <p>2ndAPI: {{ result.final_df_message }}</p>
+    <!-- Show summary info -->
+    <p>Period: {{ result.final_df_message }}</p>
     <p>Country: {{ result.country }}</p>
-    <table border="1">
-      <tr>
-        {% for col in result.rows[0].keys() %}
-          <th>{{ col }}</th>
-        {% endfor %}
-      </tr>
-      {% for row in result.rows %}
-        <tr>
-          {% for val in row.values() %}
-            <td>{{ val }}</td>
-          {% endfor %}
-        </tr>
-      {% endfor %}
-    </table>
+    <p>Seller Cost (sum): {{ result.seller_sum }}</p>
+    <p>Customer Cost (sum): {{ result.customer_sum }}</p>
+
+    <!-- Download Button -->
+    <form action="{{ url_for('download_csv') }}" method="get">
+      <button type="submit">Download Full CSV</button>
+    </form>
   {% endif %}
 {% endif %}
 {% endblock %}
-
-
-
-
-
