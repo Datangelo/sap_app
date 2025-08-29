@@ -100,6 +100,18 @@ def download_file(filename):
         as_attachment=True,
         download_name=filename
     )
+
+@app.route("/download_csv")
+def download_csv():
+    try:
+        return send_file(
+            "latest_report.csv",
+            mimetype="text/csv",
+            as_attachment=True,
+            download_name="Billing_report.csv"
+        )
+    except FileNotFoundError:
+        return "No report available to download", 400
     
 def transform_sap(df: pd.DataFrame) -> pd.DataFrame:
 
@@ -238,6 +250,7 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))  # fallback to 8000 for local testing
     app.run(host='0.0.0.0', port=port)
     
+
 
 
 
