@@ -197,18 +197,22 @@ def run_awstool(country: str, start_date: str, end_date: str):
         }
         Billing_report.rename(columns=rename_mapping, inplace=True)
 
-        # Prepare output 
-        final_df_count = len(final_df) if final_df is not None else 0 
-        final_df_message = f"Se son rose fioriranno !"
+        Billing_report.to_csv("latest_report.csv", index=False)
+
+        # Calculate sums
+        seller_sum = Billing_report["Seller Cost"].sum()
+        customer_sum = Billing_report["Customer Cost"].sum()
 
         return {
-            "final_df_message": final_df_message,
-            "country": country,
-            "rows": Billing_report.head(10).to_dict(orient="records")
-        }
+        "final_df_message": f"from {start_date} to {end_date}",
+        "country": country,
+        "seller_sum": seller_sum,
+        "customer_sum": customer_sum
+    }
 
     except Exception as e:
         return {"error": str(e)}
+
 
 
 
