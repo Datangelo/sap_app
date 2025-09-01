@@ -32,10 +32,11 @@
 
 <!-- Upload Credit File Form -->
 <h3>Upload Credit File</h3>
-<form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
+<form action="{{ url_for('upload_credits') }}" method="post" enctype="multipart/form-data">
   <input type="file" name="file" accept=".csv,.xlsx" required>
   <button type="submit">Upload & Apply Credits</button>
 </form>
+
 
 {% if result %}
   <h3>Result:</h3>
@@ -54,3 +55,4 @@
   {% endif %}
 {% endif %}
 {% endblock %}
+
