@@ -5,7 +5,7 @@ import pandas as pd
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
 from dotenv import load_dotenv
-from awstool import run_awstool
+from awstool import run_awstool, Billing_report, apply_credit_adjustments
 import csv
 
 load_dotenv() 
@@ -40,6 +40,18 @@ def awstool():
 
         result = run_awstool(country, start_date, end_date)
 
+    return render_template("awstool.html", result=result)
+
+@app.route("/upload_file", methods=["POST"])
+def upload_file():
+    if "file" not in request.files:
+        return render_template("awstool.html", result={"error": "No file uploaded"})
+
+    file = request.files["file"]
+    if file.filename == "":
+        return render_template("awstool.html", result={"error": "No file selected"})
+
+    result = apply_credit_adjustments(file)
     return render_template("awstool.html", result=result)
 
 @app.route('/consolidate')
@@ -250,6 +262,7 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))  # fallback to 8000 for local testing
     app.run(host='0.0.0.0', port=port)
     
+
 
 
 
