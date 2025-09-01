@@ -5,6 +5,7 @@
 {% block content %}
 <h2>AWS Tool</h2>
 
+<!-- Run AWS Tool Form -->
 <form method="POST">
   <label for="country">Country:</label>
   <select name="country" id="country" required>
@@ -27,12 +28,20 @@
   <button type="submit">Run Tool</button>
 </form>
 
+<hr>
+
+<!-- Upload Credit File Form -->
+<h3>Upload Credit File</h3>
+<form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
+  <input type="file" name="file" accept=".csv,.xlsx" required>
+  <button type="submit">Upload & Apply Credits</button>
+</form>
+
 {% if result %}
   <h3>Result:</h3>
   {% if result.error %}
     <p style="color:red;">Error: {{ result.error }}</p>
   {% else %}
-    <!-- Show summary info -->
     <p>Period: {{ result.final_df_message }}</p>
     <p>Country: {{ result.country }}</p>
     <p>Seller Cost (sum): {{ result.seller_sum }}</p>
