@@ -214,6 +214,73 @@ def run_awstool(country: str, start_date: str, end_date: str):
         return {"error": str(e)}
 
 
+# -----------------------------
+# New: function to handle file upload + credit adjustment
+# -----------------------------
+
+expected_headers = ["Account", "Credit", "Credit Remained", "Reseller ID To Delete"]
+
+def apply_credit_adjustments(uploaded_file):
+    global Billing_report
+
+    try:
+        # Load file (CSV or XLSX)
+        if uploaded_file.filename.endswith(".csv"):
+            credit_df = pd.read_csv(uploaded_file)
+        elif uploaded_file.filename.endswith(".xlsx"):
+            credit_df = pd.read_excel(uploaded_file)
+        else:
+            return {"error": "Unsupported file type. Please upload credit with proper format."}
+
+        # Validate headers
+        if list(credit_df.columns) != expected_headers:
+            return {"error": f"Header is not correct. Expected: {', '.join(expected_headers)}"}
+
+        # Apply credits to Billing_report
+        for _, credit_row in credit_df.iterrows():
+            account_id = credit_row['Account']
+            credit_amount_seller = credit_row['Credit']  # apply to Seller Cost
+            credit_amount_customer = credit_row['Credit']  # apply to Customer Cost
+
+            # Select rows in Billing_report for this account
+            account_rows = Billing_report.index[Billing_report['Account'] == account_id]
+
+            for idx in account_rows:
+                # Seller Cost adjustment
+                if credit_amount_seller > 0:
+                    deduction = min(Billing_report.at[idx, 'Seller Cost'], credit_amount_seller)
+                    Billing_report.at[idx, 'Seller Cost'] -= deduction
+                    credit_amount_seller -= deduction
+
+                # Customer Cost adjustment
+                if credit_amount_customer > 0:
+                    deduction = min(Billing_report.at[idx, 'Customer Cost'], credit_amount_customer)
+                    Billing_report.at[idx, 'Customer Cost'] -= deduction
+                    credit_amount_customer -= deduction
+
+                # Stop early if both credits exhausted
+                if credit_amount_seller <= 0 and credit_amount_customer <= 0:
+                    break
+
+        # Update summary after adjustments
+        seller_sum = Billing_report["Seller Cost"].sum()
+        customer_sum = Billing_report["Customer Cost"].sum()
+
+        return {
+            "final_df_message": f"from {start_date} to {end_date} (Adjusted with credit)",
+            "country": country,
+            "seller_sum": seller_sum,
+            "customer_sum": customer_sum
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
+
+
+
+
 
 
 
