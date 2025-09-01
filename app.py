@@ -42,8 +42,8 @@ def awstool():
 
     return render_template("awstool.html", result=result)
 
-@app.route("/upload_file", methods=["POST"])
-def upload_file():
+@app.route("/upload_credits", methods=["POST"])
+def upload_credits():
     if "file" not in request.files:
         return render_template("awstool.html", result={"error": "No file uploaded"})
 
@@ -262,6 +262,7 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))  # fallback to 8000 for local testing
     app.run(host='0.0.0.0', port=port)
     
+
 
 
 
