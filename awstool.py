@@ -196,6 +196,7 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
 
         if final_df is not None:
             final_df['Account Number'] = final_df['Account Number'].astype(str)
+            global Billing_report
             Billing_report = pd.merge(
                 grouped,
                 final_df,
@@ -230,6 +231,7 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
 
     except Exception as e:
         return {"error": str(e)}
+
 
 
 
