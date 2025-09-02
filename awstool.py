@@ -270,14 +270,14 @@ def apply_credit_adjustments(uploaded_file):
         customer_sum = Billing_report["Customer Cost"].sum()
 
         return {
-            "final_df_message": f"from {start_date} to {end_date} (Adjusted with credit)",
-            "country": country,
+            "final_df_message": "Adjusted with credit",
             "seller_sum": seller_sum,
             "customer_sum": customer_sum
         }
 
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": str(e)}  
+
 
 
 
