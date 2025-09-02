@@ -7,6 +7,8 @@ import pandas as pd
 from datetime import datetime, timedelta
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
+Billing_report = None
+
 
 # -----------------------
 # Azure Key Vault Setup
@@ -178,6 +180,7 @@ def run_awstool(country: str, start_date: str, end_date: str):
 
         if final_df is not None:
             final_df['Account Number'] = final_df['Account Number'].astype(str)
+            global Billing_report
             Billing_report = pd.merge(
                 grouped,
                 final_df,
@@ -275,6 +278,7 @@ def apply_credit_adjustments(uploaded_file):
 
     except Exception as e:
         return {"error": str(e)}
+
 
 
 
