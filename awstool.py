@@ -8,6 +8,9 @@ from datetime import datetime, timedelta
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 Billing_report = None
+last_country = None
+last_start_date = None
+last_end_date = None
 
 
 # -----------------------
@@ -180,7 +183,7 @@ def run_awstool(country: str, start_date: str, end_date: str):
 
         if final_df is not None:
             final_df['Account Number'] = final_df['Account Number'].astype(str)
-            global Billing_report
+            global Billing_report, last_country, last_start_date, last_end_date
             Billing_report = pd.merge(
                 grouped,
                 final_df,
@@ -191,6 +194,11 @@ def run_awstool(country: str, start_date: str, end_date: str):
         else:
             Billing_report = grouped.copy()
 
+
+        last_country = country
+        last_start_date = start_date
+        last_end_date = end_date    
+
         # Rename for clarity
         rename_mapping = {
             "Cloud Account Number": "Account",
@@ -199,6 +207,9 @@ def run_awstool(country: str, start_date: str, end_date: str):
             "Assigned Customer Company": "End_Customer",
         }
         Billing_report.rename(columns=rename_mapping, inplace=True)
+
+        Billing_report['Account'] = pd.to_numeric(Billing_report['Account'], errors='coerce').astype('Int64')
+
 
         Billing_report.to_csv("latest_report.csv", index=False)
 
@@ -224,7 +235,8 @@ def run_awstool(country: str, start_date: str, end_date: str):
 expected_headers = ["Account", "Credit", "Credit Remained", "Reseller ID To Delete"]
 
 def apply_credit_adjustments(uploaded_file):
-    global Billing_report
+    global Billing_report, last_country, last_start_date, last_end_date
+
 
     try:
         # Load file (CSV or XLSX)
@@ -265,18 +277,23 @@ def apply_credit_adjustments(uploaded_file):
                 if credit_amount_seller <= 0 and credit_amount_customer <= 0:
                     break
 
+        Billing_report.to_csv("latest_report.csv", index=False)
+
         # Update summary after adjustments
         seller_sum = Billing_report["Seller Cost"].sum()
         customer_sum = Billing_report["Customer Cost"].sum()
 
         return {
-            "final_df_message": "Adjusted with credit",
+            "final_df_message": f"from {last_start_date} to {last_end_date} (Adjusted with credit)",
+            "country": last_country,
             "seller_sum": seller_sum,
             "customer_sum": customer_sum
-        }
+            }
 
     except Exception as e:
-        return {"error": str(e)}  
+        print(traceback.format_exc())
+        return {"error": str(e)}
+
 
 
 
