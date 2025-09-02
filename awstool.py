@@ -7,6 +7,8 @@ import pandas as pd
 from datetime import datetime, timedelta
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
+Billing_report = None
+
 
 # -----------------------
 # Azure Key Vault Setup
@@ -231,6 +233,7 @@ def run_awstool(country: str, start_date: str, end_date: str, merged_df_EMEA=Non
 
     except Exception as e:
         return {"error": str(e)}
+
 
 
 
