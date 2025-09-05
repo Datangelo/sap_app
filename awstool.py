@@ -544,6 +544,9 @@ def consolidation():
         if "Condition Creation/ Country" not in Billing_report.columns:
             Billing_report["Condition Creation/ Country"] = "creation by reseller"
 
+        if "PO" not in Billing_report.columns:
+            Billing_report["PO"] = ""
+
         if "SAP ID" in Billing_report.columns:  # drop only if column exists
             Billing_report = Billing_report.drop('SAP ID', axis=1)
 
@@ -638,6 +641,7 @@ def consolidation():
     except Exception as e:
         print(traceback.format_exc())
         return {"error": str(e)}
+
 
 
 
