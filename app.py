@@ -54,6 +54,65 @@ def upload_credits():
     result = apply_credit_adjustments(file)
     return render_template("awstool.html", result=result)
 
+####################################################
+
+@app.route("/upload_exception", methods=["POST"])
+def upload_exception():
+    if "file" not in request.files:
+        return render_template("awstool.html", result={"error": "No file uploaded"})
+
+    file = request.files["file"]
+    if file.filename == "":
+        return render_template("awstool.html", result={"error": "No file selected"})
+
+    result = apply_exception(file)
+    return render_template("awstool.html", result=result)
+
+
+
+####################################################
+
+@app.route("/consolidation", methods=["POST"])
+def run_consolidation():
+    result = consolidation()
+    return render_template("awstool.html", result=result)
+
+
+####################################################
+
+@app.route("/upload_po", methods=["POST"])
+def upload_po():
+    if "file" not in request.files:
+        return render_template("awstool.html", result={"error": "No file uploaded"})
+
+    file = request.files["file"]
+    if file.filename == "":
+        return render_template("awstool.html", result={"error": "No file selected"})
+
+    result = apply_po_adjustments(file)
+    return render_template("awstool.html", result=result)
+
+
+
+####################################################
+
+@app.route("/upload_consolidation", methods=["POST"])
+def upload_consolidation():
+    if "file" not in request.files:
+        return render_template("awstool.html", result={"error": "No file uploaded"})
+
+    file = request.files["file"]
+    if file.filename == "":
+        return render_template("awstool.html", result={"error": "No file selected"})
+
+    result = apply_consolidation_adjustments(file)
+    return render_template("awstool.html", result=result)
+
+
+
+#############################################
+
+
 @app.route('/consolidate')
 def consolidate():
     return render_template('consolidated.html')
@@ -262,6 +321,7 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))  # fallback to 8000 for local testing
     app.run(host='0.0.0.0', port=port)
     
+
 
 
 
