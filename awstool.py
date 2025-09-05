@@ -550,12 +550,17 @@ def consolidation():
 
         if "SAP ID" in Billing_report.columns:  # drop only if column exists
             Billing_report = Billing_report.drop('SAP ID', axis=1)
+            
+            
+        selected_cols = ['Reseller Name', 'Account', 'SAP_ID', 'Seller Cost', "Materials",'Customer Cost',
+                         'End_Customer', 'PO', 'Condition Creation/ Country']
+        
+        Billing_report = Billing_report[selected_cols]
 
         Billing_report['Material_id'] = np.where(
             Billing_report['Materials'].str.contains('TechCARE', case=False, na=False),
             11532184,
-            6688949
-        )
+            6688949)
 
         # Convert to datetime and format
         start_fmt = pd.to_datetime(last_start_date).strftime("%m/%d/%y")
@@ -642,6 +647,7 @@ def consolidation():
     except Exception as e:
         print(traceback.format_exc())
         return {"error": str(e)}
+
 
 
 
