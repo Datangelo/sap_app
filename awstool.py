@@ -37,14 +37,21 @@ emea_cfg = {
 # Helper: Refresh token
 # -----------------------
 def refresh_token(cfg):
-    """Refresh token and update Azure Key Vault."""
+    """
+    Refresh token and update Azure Key Vault.
+    Works locally using kvault_connections().
+    """
+    secret_client = kvault_connections()
+
     conn = http.client.HTTPSConnection("ion.tdsynnex.com")
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
+    # Get old secret
     secret_value = secret_client.get_secret(cfg["secret_id"]).value
     secret_json = json.loads(secret_value)
     old_refresh = secret_json["refresh_key"]
 
+    # Call API for new token
     body = urllib.parse.urlencode({
         "grant_type": "refresh_token",
         "refresh_token": old_refresh
@@ -56,7 +63,7 @@ def refresh_token(cfg):
     new_refresh = resp_json["refresh_token"]
     new_access = resp_json["access_token"]
 
-    # Update secret
+    # Update secret in Key Vault
     secret_client.set_secret(
         cfg["secret_id"],
         json.dumps({"refresh_key": new_refresh, "access_key": new_access})
@@ -173,26 +180,23 @@ def run_awstool(country: str, start_date: str, end_date: str):
         report_json = json.loads(data)
         final_df = pd.read_csv(io.StringIO(report_json["results"]))
 
-        # --- Step 3: Merge ---
-        grouped = df_country.groupby(
-            ['Reseller Name','Cloud Account Number', 'Product Name','SAP ID (customer)']
-        )[['Seller Cost', 'Customer Cost']].sum().reset_index()
 
-        grouped['SAP ID (customer)'] = grouped['SAP ID (customer)'].astype('Int32')
-        grouped['Cloud Account Number'] = grouped['Cloud Account Number'].astype(str)
+        df_country['SAP ID (customer)'] = df_country['SAP ID (customer)'].astype('Int32')
+        df_country['Cloud Account Number'] = df_country['Cloud Account Number'].astype(str).str.zfill(12)
+
 
         if final_df is not None:
             final_df['Account Number'] = final_df['Account Number'].astype(str)
             global Billing_report, last_country, last_start_date, last_end_date
             Billing_report = pd.merge(
-                grouped,
+                df_country,
                 final_df,
                 left_on=['Cloud Account Number'],
                 right_on=['Account Number'],
                 how="left"
             )
         else:
-            Billing_report = grouped.copy()
+            Billing_report = df_country.copy()
 
 
         last_country = country
@@ -208,7 +212,9 @@ def run_awstool(country: str, start_date: str, end_date: str):
         }
         Billing_report.rename(columns=rename_mapping, inplace=True)
 
-        Billing_report['Account'] = pd.to_numeric(Billing_report['Account'], errors='coerce').astype('Int64')
+        Billing_report['Account'] = Billing_report['Account'].astype(str).str.zfill(12)
+
+        #Billing_report['Account'] = pd.to_numeric(Billing_report['Account'], errors='coerce').astype('Int64')
 
 
         Billing_report.to_csv("latest_report.csv", index=False)
@@ -229,13 +235,76 @@ def run_awstool(country: str, start_date: str, end_date: str):
 
 
 # -----------------------------
+# New: function to handle exception adjustments
+# -----------------------------
+
+
+
+def apply_exception(uploaded_file):
+    global Billing_report, last_country, last_start_date, last_end_date
+
+    expected_headers = ["SAP ID", "Account"]  
+
+    try:
+        # Load file (CSV or XLSX)
+        if uploaded_file.filename.endswith(".csv"):
+            exceptions = pd.read_csv(uploaded_file)
+        elif uploaded_file.filename.endswith(".xlsx"):
+            exceptions = pd.read_excel(uploaded_file)
+        else:
+            return {"error": "Unsupported file type. Please upload credit with proper format."}
+
+        # Validate headers
+        if list(exceptions.columns) != expected_headers:
+            return {"error": f"Header is not correct. Expected: {', '.join(expected_headers)}"}
+        
+
+        exceptions['Account'] = exceptions['Account'].astype(str).str.zfill(12)
+
+        exceptions['SAP ID'] = exceptions['SAP ID'].astype('Int64')
+
+        # Create a mapping from Account → SAP ID from exceptions
+
+        account_to_sap = exceptions.set_index("Account")["SAP ID"].to_dict()
+        
+        # Update SAP_ID in Billing_report wherever Account matches
+
+        Billing_report["SAP_ID"] = Billing_report["Account"].map(account_to_sap).combine_first(Billing_report["SAP_ID"])
+
+
+        Billing_report.to_csv("latest_report.csv", index=False)
+
+        # Update summary after adjustments
+        seller_sum = Billing_report["Seller Cost"].sum()
+        customer_sum = Billing_report["Customer Cost"].sum()
+
+        return {
+            "final_df_message": f"from {last_start_date} to {last_end_date} (Exception Applied)",
+            "country": last_country,
+            "seller_sum": seller_sum,
+            "customer_sum": customer_sum
+            }
+
+    except Exception as e:
+        print(traceback.format_exc())
+        return {"error": str(e)}
+    
+
+    # -----------------------------
+# New: function to add PO number to Billing_report
+
+
+
+# -----------------------------
 # New: function to handle file upload + credit adjustment
 # -----------------------------
 
-expected_headers = ["Account", "Credit", "Credit Remained", "Reseller ID To Delete"]
+
 
 def apply_credit_adjustments(uploaded_file):
     global Billing_report, last_country, last_start_date, last_end_date
+
+    expected_headers = ["Account", "Credit", "Credit Remained", "Reseller ID To Delete"]
 
 
     try:
@@ -250,6 +319,10 @@ def apply_credit_adjustments(uploaded_file):
         # Validate headers
         if list(credit_df.columns) != expected_headers:
             return {"error": f"Header is not correct. Expected: {', '.join(expected_headers)}"}
+        
+
+        credit_df['Account'] = credit_df['Account'].astype(str).str.zfill(12)
+
 
         # Apply credits to Billing_report
         for _, credit_row in credit_df.iterrows():
@@ -289,6 +362,273 @@ def apply_credit_adjustments(uploaded_file):
             "seller_sum": seller_sum,
             "customer_sum": customer_sum
             }
+
+    except Exception as e:
+        print(traceback.format_exc())
+        return {"error": str(e)}
+    
+
+    # -----------------------------
+# New: function to add PO number to Billing_report
+# -----------------------------
+
+
+
+def apply_po_adjustments(uploaded_file):
+    global Billing_report, last_country, last_start_date, last_end_date
+
+    expected_headers = ["Reseller SAP ID", "End Customer", "PO", "PO Condition"]
+
+
+    try:
+        # Load file (CSV or XLSX)
+        if uploaded_file.filename.endswith(".csv"):
+            custom_po_df = pd.read_csv(uploaded_file)
+        elif uploaded_file.filename.endswith(".xlsx"):
+            custom_po_df = pd.read_excel(uploaded_file)
+        else:
+            return {"error": "Unsupported file type. Please upload credit with proper format."}
+
+        # Validate headers
+        if list(custom_po_df.columns) != expected_headers:
+            return {"error": f"Header is not correct. Expected: {', '.join(expected_headers)}"}
+        
+
+        custom_po_df['End Customer'] = pd.to_numeric(custom_po_df['End Customer'], errors='coerce')
+
+        custom_po_df['End Customer'] = custom_po_df['End Customer'].astype('Int64')
+
+        custom_po_df['End Customer'] = custom_po_df['End Customer'].astype(str).str.zfill(12)
+
+        custom_po_df['Reseller SAP ID'] = custom_po_df['Reseller SAP ID'].astype('Int64')
+
+
+
+    
+        
+
+        custom_po_df_unique = custom_po_df[['Reseller SAP ID', 'End Customer','PO','PO Condition'
+                        ]].drop_duplicates()
+
+        
+
+        Billing_report = pd.merge(Billing_report, 
+                             custom_po_df_unique,  
+                             left_on=['SAP_ID','Account'
+                                      ],  # Columns in `sc_df`
+                            right_on=['Reseller SAP ID', 'End Customer'
+                                      ],        # Columns in `cee_df`
+                                      how="left"  # Perform a left join
+                                      )
+        
+
+        Billing_report = Billing_report.drop(['Reseller SAP ID',
+                                        'End Customer', 'PO Condition'], axis=1)
+        
+        Billing_report.to_csv("latest_report.csv", index=False)
+
+        # Update summary after adjustments
+        seller_sum = Billing_report["Seller Cost"].sum()
+        customer_sum = Billing_report["Customer Cost"].sum()
+
+        return {
+            "final_df_message": f"from {last_start_date} to {last_end_date} (Adjusted with credit and PO)",
+            "country": last_country,
+            "seller_sum": seller_sum,
+            "customer_sum": customer_sum
+            }
+
+    except Exception as e:
+        print(traceback.format_exc())
+        return {"error": str(e)}
+    
+
+
+        # -----------------------------
+# New: function to add consolidation  to Billing_report
+# -----------------------------
+
+
+
+def apply_consolidation_adjustments(uploaded_file):
+    global Billing_report, last_country, last_start_date, last_end_date
+
+    expected_headers = ["SAP ID", "Condition Creation/ Country"]
+
+
+    try:
+        # Load file (CSV or XLSX)
+        if uploaded_file.filename.endswith(".csv"):
+            consolidation_df = pd.read_csv(uploaded_file)
+        elif uploaded_file.filename.endswith(".xlsx"):
+            consolidation_df = pd.read_excel(uploaded_file)
+        else:
+            return {"error": "Unsupported file type. Please upload credit with proper format."}
+
+        # Validate headers
+        if list(consolidation_df.columns) != expected_headers:
+            return {"error": f"Header is not correct. Expected: {', '.join(expected_headers)}"}
+
+        consolidation_unique = consolidation_df[["SAP ID","Condition Creation/ Country"
+                        ]].drop_duplicates()
+        
+        consolidation_df['SAP ID'] = consolidation_df['SAP ID'].astype('Int64')
+
+
+        consolidation_unique['Condition Creation/ Country'] = (
+            consolidation_unique['Condition Creation/ Country'].str.strip()
+            )
+        
+        
+        Billing_report = pd.merge(
+            Billing_report,
+            consolidation_unique,
+            left_on=['SAP_ID'],
+            right_on=['SAP ID'],
+            how='left'
+            )
+        
+        Billing_report['Condition Creation/ Country'] = Billing_report['Condition Creation/ Country'].fillna('Creation by Reseller')
+
+        #Billing_report = Billing_report.drop('SAP ID', axis=1)
+
+
+
+        #Billing_report['Material_id'] = np.where(Billing_report['Materials'].str.contains('TechCARE', case=False, na=False),11532184,6688949)
+
+
+        # Convert to datetime and format
+        #start_fmt = pd.to_datetime(last_start_date).strftime("%m/%d/%y")
+        #end_fmt = pd.to_datetime(last_end_date).strftime("%m/%d/%y")
+        # Create billing period string
+        #billing_period_str = f"{start_fmt} to {end_fmt}"
+        # Add to DataFrame
+        #Billing_report["Billing period"] = billing_period_str
+
+        #Billing_report.rename(columns={"Condition Creation/ Country":'Creation Condition'}, inplace=True)
+ 
+        Billing_report.to_csv("latest_report.csv", index=False)
+
+        # Update summary after adjustments
+        seller_sum = Billing_report["Seller Cost"].sum()
+        customer_sum = Billing_report["Customer Cost"].sum()
+
+        return {
+            "final_df_message": f"from {last_start_date} to {last_end_date} (Adjusted with credit and PO and Consolidation)",
+            "country": last_country,
+            "seller_sum": seller_sum,
+            "customer_sum": customer_sum
+            }
+
+    except Exception as e:
+        print(traceback.format_exc())
+        return {"error": str(e)}
+    
+
+            # -----------------------------
+# New: function to add final consolidation  
+# -----------------------------
+
+def consolidation():
+    global Billing_report, last_country, last_start_date, last_end_date
+
+    try:
+        Billing_report['PO'] = Billing_report['PO'].fillna('NaN')
+        Billing_report['End_Customer'] = Billing_report['End_Customer'].fillna('unknown')
+
+        if "Condition Creation/ Country" not in Billing_report.columns:
+            Billing_report["Condition Creation/ Country"] = "creation by reseller"
+
+        if "SAP ID" in Billing_report.columns:  # drop only if column exists
+            Billing_report = Billing_report.drop('SAP ID', axis=1)
+
+        Billing_report['Material_id'] = np.where(
+            Billing_report['Materials'].str.contains('TechCARE', case=False, na=False),
+            11532184,
+            6688949
+        )
+
+        # Convert to datetime and format
+        start_fmt = pd.to_datetime(last_start_date).strftime("%m/%d/%y")
+        end_fmt = pd.to_datetime(last_end_date).strftime("%m/%d/%y")
+        billing_period_str = f"{start_fmt} to {end_fmt}"
+
+        Billing_report["Billing period"] = billing_period_str
+        Billing_report['Condition Creation/ Country'] = Billing_report['Condition Creation/ Country'].str.lower()
+        Billing_report = Billing_report[Billing_report['SAP_ID'].notna()]
+
+        # Split DataFrames
+        reseller_df = Billing_report[Billing_report['Condition Creation/ Country'] == 'creation by reseller'].drop(columns=["End_Customer"])
+        end_customer_df = Billing_report[Billing_report['Condition Creation/ Country'] == 'creation by end customer']
+
+        # Group reseller
+        grouped_reseller = (
+            reseller_df.groupby(['SAP_ID', "Billing period", "Material_id", "PO", 'Condition Creation/ Country'], as_index=False)
+                       .agg({"Seller Cost": "sum", "Customer Cost": "sum"})
+        )
+
+        # Group end customer
+        grouped_end_customer = (
+            end_customer_df.groupby(['SAP_ID', 'Condition Creation/ Country', 'PO',
+                                     'Material_id', "Billing period", "End_Customer"], as_index=False)
+                           .agg({"Seller Cost": "sum", "Customer Cost": "sum"})
+        )
+
+        # Merge
+        Billing_report = pd.concat([grouped_end_customer, grouped_reseller], ignore_index=True)
+        Billing_report['PO'] = Billing_report['PO'].replace('NaN', '')
+        Billing_report['PO Condition'] = np.where(Billing_report['PO'] != '', 'PO header', '')
+
+        # Add empty columns
+        Billing_report['Account'] = ''
+        Billing_report['Usage'] = ''
+        Billing_report['Material Not Created'] = ''
+        Billing_report['Sales Order Number'] = ''
+        Billing_report['Billing Block'] = ''
+
+        # Margin
+        Billing_report['Margin'] = Billing_report['Customer Cost'] - Billing_report['Seller Cost']
+
+        # Rename columns
+        Billing_report.rename(columns={
+            'SAP_ID': 'Reseller Name',
+            'Condition Creation/ Country': 'Creation Condition',
+            'Material_id': 'Materials',
+            'End_Customer': 'End Customer'
+        }, inplace=True)
+
+        # Reorder columns
+        Billing_report = Billing_report[[
+            'Reseller Name',
+            'Account',
+            'End Customer',
+            'Materials',
+            'Seller Cost',
+            'Customer Cost',
+            'Margin',
+            'Usage',
+            'Billing period',
+            'Creation Condition',
+            'Material Not Created',
+            'PO',
+            'PO Condition',
+            'Sales Order Number',
+            'Billing Block'
+        ]]
+
+        # Save latest version
+        Billing_report.to_csv("latest_report.csv", index=False)
+
+        # Calculate sums for summary
+        seller_sum = Billing_report["Seller Cost"].sum()
+        customer_sum = Billing_report["Customer Cost"].sum()
+
+        return {
+            "final_df_message": f"from {last_start_date} to {last_end_date} [Consolidated]",
+            "country": last_country,
+            "seller_sum": seller_sum,
+            "customer_sum": customer_sum
+        }
 
     except Exception as e:
         print(traceback.format_exc())
