@@ -46,7 +46,7 @@ def refresh_token(cfg):
     Refresh token and update Azure Key Vault.
     Works locally using kvault_connections().
     """
-    secret_client = kvault_connections()
+    
 
     conn = http.client.HTTPSConnection("ion.tdsynnex.com")
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
@@ -638,6 +638,7 @@ def consolidation():
     except Exception as e:
         print(traceback.format_exc())
         return {"error": str(e)}
+
 
 
 
