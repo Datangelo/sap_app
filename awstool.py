@@ -540,7 +540,7 @@ def consolidation():
     try:
 
         if "PO" not in Billing_report.columns:
-            Billing_report["PO"] = ""
+            Billing_report["PO"] = np.nan 
             
         Billing_report['PO'] = Billing_report['PO'].fillna('NaN')
         Billing_report['End_Customer'] = Billing_report['End_Customer'].fillna('unknown')
@@ -642,6 +642,7 @@ def consolidation():
     except Exception as e:
         print(traceback.format_exc())
         return {"error": str(e)}
+
 
 
 
