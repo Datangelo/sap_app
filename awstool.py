@@ -7,10 +7,15 @@ import pandas as pd
 from datetime import datetime, timedelta
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
+import traceback
+import numpy as np
+
+
 Billing_report = None
 last_country = None
 last_start_date = None
 last_end_date = None
+
 
 
 # -----------------------
@@ -633,6 +638,7 @@ def consolidation():
     except Exception as e:
         print(traceback.format_exc())
         return {"error": str(e)}
+
 
 
 
