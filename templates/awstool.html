@@ -30,12 +30,41 @@
 
 <hr>
 
+<!-- Upload Exception File Form -->
+<h3>Upload Exceptions</h3>
+<form action="{{ url_for('upload_exception') }}" method="post" enctype="multipart/form-data">
+  <input type="file" name="file" accept=".csv,.xlsx" required>
+  <button type="submit">Upload & Apply Exceptions</button>
+</form>
+
 <!-- Upload Credit File Form -->
 <h3>Upload Credit File</h3>
 <form action="{{ url_for('upload_credits') }}" method="post" enctype="multipart/form-data">
   <input type="file" name="file" accept=".csv,.xlsx" required>
   <button type="submit">Upload & Apply Credits</button>
 </form>
+
+
+<!-- Upload PO Numbers Form -->
+<h3>Upload PO Numbers</h3>
+<form action="{{ url_for('upload_po') }}" method="post" enctype="multipart/form-data">
+  <input type="file" name="file" accept=".csv,.xlsx" required>
+  <button type="submit">Upload & Apply PO</button>
+</form>
+
+
+<!-- Upload Consolidation Form -->
+<h3>Upload Consolidation type</h3>
+<form action="{{ url_for('upload_consolidation') }}" method="post" enctype="multipart/form-data">
+  <input type="file" name="file" accept=".csv,.xlsx" required>
+  <button type="submit">Upload & Apply Consolidation Type</button>
+</form>
+
+<!-- Consolidation Button -->
+  <h3>Run Consolidation</h3>
+  <form action="{{ url_for('run_consolidation') }}" method="post">
+    <button type="submit">Run Consolidation</button>
+  </form>
 
 
 {% if result %}
