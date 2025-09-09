@@ -6,6 +6,7 @@ from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
 from dotenv import load_dotenv
 from awstool import run_awstool, apply_credit_adjustments,apply_po_adjustments,apply_consolidation_adjustments,apply_exception,consolidation
+from awstool import last_country, last_start_date, last_end_date  # import globals
 import csv
 
 load_dotenv() 
@@ -174,12 +175,16 @@ def download_file(filename):
 
 @app.route("/download_csv")
 def download_csv():
+    from awstool import last_country, last_start_date, last_end_date  
     try:
+        # Format filename dynamically
+        base_name = f"AWS_Billing_Report_{last_country}_from_{last_start_date}_to_{last_end_date}.csv"
+        
         return send_file(
             "latest_report.csv",
             mimetype="text/csv",
             as_attachment=True,
-            download_name="Billing_report.csv"
+            download_name=base_name
         )
     except FileNotFoundError:
         return "No report available to download", 400
@@ -321,6 +326,7 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))  # fallback to 8000 for local testing
     app.run(host='0.0.0.0', port=port)
     
+
 
 
 
