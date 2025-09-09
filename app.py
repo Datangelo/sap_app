@@ -23,6 +23,7 @@ blob_service_client = BlobServiceClient(
     credential=DefaultAzureCredential()
 )
 
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -30,9 +31,6 @@ def index():
 @app.route('/x2cf')
 def x2cf():
     return render_template('x2cf.html')
-
-
-
 
 # Track progress across steps
 progress_flags = {
@@ -224,6 +222,8 @@ def download_file(filename):
         as_attachment=True,
         download_name=filename
     )
+
+
     
 def transform_sap(df: pd.DataFrame) -> pd.DataFrame:
 
@@ -362,10 +362,6 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))  # fallback to 8000 for local testing
     app.run(host='0.0.0.0', port=port)
     
-
-
-
-
 
 
 
