@@ -81,8 +81,6 @@ def refresh_token(cfg):
 # -----------------------
 def run_awstool(country: str, start_date: str, end_date: str):
     global Billing_report, last_country, last_start_date, last_end_date
-
-    
     """
     Run AWS Tool:
     1. Fetch country-level report (date range from HTML).
@@ -209,9 +207,7 @@ def run_awstool(country: str, start_date: str, end_date: str):
 
         last_country = country
         last_start_date = start_date
-        last_end_date = end_date  
-
-
+        last_end_date = end_date    
 
         # Rename for clarity
         rename_mapping = {
@@ -442,7 +438,7 @@ def apply_po_adjustments(uploaded_file):
         customer_sum = Billing_report["Customer Cost"].sum()
 
         return {
-            "final_df_message": f"from {last_start_date} to {last_end_date} (Adjusted with credit and PO)",
+            "final_df_message": f"from {last_start_date} to {last_end_date} (Adjusted with PO)",
             "country": last_country,
             "seller_sum": seller_sum,
             "customer_sum": customer_sum
@@ -524,7 +520,7 @@ def apply_consolidation_adjustments(uploaded_file):
         customer_sum = Billing_report["Customer Cost"].sum()
 
         return {
-            "final_df_message": f"from {last_start_date} to {last_end_date} (Adjusted with credit and PO and Consolidation)",
+            "final_df_message": f"from {last_start_date} to {last_end_date} (Adjusted with Consolidation Type)",
             "country": last_country,
             "seller_sum": seller_sum,
             "customer_sum": customer_sum
@@ -652,6 +648,7 @@ def consolidation():
     except Exception as e:
         print(traceback.format_exc())
         return {"error": str(e)}
+
 
 
 
