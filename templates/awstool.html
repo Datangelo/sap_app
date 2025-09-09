@@ -1,47 +1,102 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+{% extends "base.html" %}
 
-  {# page‐specific CSS/framework imports go here #}
-  {% block head %}{% endblock %}
+{% block title %}AWS Tool{% endblock %}
 
-  {# then your overrides last #}
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
-    rel="stylesheet"
-  >
-  <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+{% block content %}
+<h2>AWS Tool</h2>
 
-  <title>{% block title %}BI App{% endblock %}</title>
-</head>
-<body>
-  <div class="logo">biapp</div>
-  <nav class="site-navbar">
-    <ul class="nav-links">
-      <li><a href="{{ url_for('index') }}"            class="nav-link">Home</a></li>
-      <li><a href="{{ url_for('x2cf') }}"   class="nav-link">X2CF</a></li>
-      <li><a href="{{ url_for('run_consolidation') }}" class="nav-link">Consolidate</a></li>
-      <li><a href="{{ url_for('awstool') }}" class="nav-link">AWS Tool</a></li>
+<!-- Step 1: Fetch Data -->
+<div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
+  <h3>Step 1: Fetch Data</h3>
+  <p>Status: {% if step1_done %}🟢 Completed{% else %}🔴 Not Done{% endif %}</p>
+  <form method="POST">
+    <label for="country">Country:</label>
+    <select name="country" id="country" required>
+      <option value="">-- Select --</option>
+      <option value="BE">Belgium (BE)</option>
+      <option value="AT">Austria (AT)</option>
+      <option value="ES">Spain (ES)</option>
+      <!-- add more -->
+    </select>
+    <br><br>
 
-    </ul>
-  </nav>
+    <label for="start_date">Start Date:</label>
+    <input type="date" name="start_date" required>
+    <br><br>
 
-  <div class="site-container">
-    {% block content %}{% endblock %}
+    <label for="end_date">End Date:</label>
+    <input type="date" name="end_date" required>
+    <br><br>
+
+    <button type="submit">Fetch Data from ION</button>
+  </form>
+</div>
+
+<!-- Step 2a: Upload Exceptions -->
+<div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
+  <h3>Step 2a: Upload Exceptions (Optional)</h3>
+  <p>Status: {% if step2a_done %}🟢 Completed{% else %}🔴 Not Done{% endif %}</p>
+  <form action="{{ url_for('upload_exception') }}" method="post" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".csv,.xlsx" required>
+    <button type="submit">Upload & Apply Exceptions</button>
+  </form>
+</div>
+
+<!-- Step 2b: Upload Credits -->
+<div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
+  <h3>Step 2b: Upload Credits (Optional)</h3>
+  <p>Status: {% if step2b_done %}🟢 Completed{% else %}🔴 Not Done{% endif %}</p>
+  <form action="{{ url_for('upload_credits') }}" method="post" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".csv,.xlsx" required>
+    <button type="submit">Upload & Apply Credits</button>
+  </form>
+</div>
+
+<!-- Step 2c: Upload PO Numbers -->
+<div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
+  <h3>Step 2c: Upload PO Numbers (Optional)</h3>
+  <p>Status: {% if step2c_done %}🟢 Completed{% else %}🔴 Not Done{% endif %}</p>
+  <form action="{{ url_for('upload_po') }}" method="post" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".csv,.xlsx" required>
+    <button type="submit">Upload & Apply PO</button>
+  </form>
+</div>
+
+<!-- Step 2d: Upload Consolidation Type -->
+<div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
+  <h3>Step 2d: Upload Consolidation Type (Optional)</h3>
+  <p>Status: {% if step2d_done %}🟢 Completed{% else %}🔴 Not Done{% endif %}</p>
+  <form action="{{ url_for('upload_consolidation') }}" method="post" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".csv,.xlsx" required>
+    <button type="submit">Upload & Apply Consolidation Type</button>
+  </form>
+</div>
+
+<!-- Step 3: Consolidation -->
+<div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
+  <h3>Step 3: Run Consolidation</h3>
+  <p>Status: {% if step3_done %}🟢 Completed{% else %}🔴 Not Done{% endif %}</p>
+  <form action="{{ url_for('run_consolidation') }}" method="post">
+    <button type="submit">Run Consolidation</button>
+  </form>
+</div>
+
+<!-- Step 4: Download -->
+{% if result %}
+  <div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
+    <h3>Step 4: Download</h3>
+    <p>Period: {{ result.final_df_message }}</p>
+    <p>Country: {{ result.country }}</p>
+
+    {% if result.error %}
+      <p style="color:red;">Error: {{ result.error }}</p>
+    {% else %}
+      <form action="{{ url_for('download_csv') }}" method="get">
+        <button type="submit">Download Full CSV</button>
+      </form>
+    {% endif %}
   </div>
-
-  <footer>
-    <p>
-      Cloud Ops BI Team – 
-      <a href="mailto:cloudbi@tdsynnex.com">cloudbi@tdsynnex.com</a>
-    </p>
-  </footer>
-
-  {% block scripts %}{% endblock %}
-</body>
-</html>
+{% endif %}
 
 
+{% endblock %}
