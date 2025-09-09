@@ -31,92 +31,144 @@ def index():
 def x2cf():
     return render_template('x2cf.html')
 
+
+
+
+# Track progress across steps
+progress_flags = {
+    "step1_done": False,
+    "step2a_done": False,
+    "step2b_done": False,
+    "step2c_done": False,
+    "step2d_done": False,
+    "step3_done": False,
+    "step4_done": False,
+}
+
+
+# ---------- STEP 1 ----------
 @app.route("/awstool", methods=["GET", "POST"])
 def awstool():
     result = None
+
+    # Reset flags on GET
+    if request.method == "GET":
+        for key in progress_flags:
+            progress_flags[key] = False
+
+            
     if request.method == "POST":
         country = request.form.get("country")
         start_date = request.form.get("start_date")
         end_date = request.form.get("end_date")
 
         result = run_awstool(country, start_date, end_date)
+        if "error" not in result:
+            progress_flags["step1_done"] = True
 
-    return render_template("awstool.html", result=result)
+    return render_template("awstool.html", result=result, **progress_flags)
 
+# ---------- STEP 2b ----------
 @app.route("/upload_credits", methods=["POST"])
 def upload_credits():
     if "file" not in request.files:
-        return render_template("awstool.html", result={"error": "No file uploaded"})
+        return render_template("awstool.html", result={"error": "No file uploaded"}, **progress_flags)
 
     file = request.files["file"]
     if file.filename == "":
-        return render_template("awstool.html", result={"error": "No file selected"})
+        return render_template("awstool.html", result={"error": "No file selected"}, **progress_flags)
 
     result = apply_credit_adjustments(file)
-    return render_template("awstool.html", result=result)
+    if "error" not in result:
+        progress_flags["step2b_done"] = True
 
-####################################################
+    return render_template("awstool.html", result=result, **progress_flags)
 
+
+# ---------- STEP 2a ----------
 @app.route("/upload_exception", methods=["POST"])
 def upload_exception():
     if "file" not in request.files:
-        return render_template("awstool.html", result={"error": "No file uploaded"})
+        return render_template("awstool.html", result={"error": "No file uploaded"}, **progress_flags)
 
     file = request.files["file"]
     if file.filename == "":
-        return render_template("awstool.html", result={"error": "No file selected"})
+        return render_template("awstool.html", result={"error": "No file selected"}, **progress_flags)
 
     result = apply_exception(file)
-    return render_template("awstool.html", result=result)
+    if "error" not in result:
+        progress_flags["step2a_done"] = True
+
+    return render_template("awstool.html", result=result, **progress_flags)
 
 
 
-####################################################
-
-@app.route("/consolidation", methods=["POST"])
+# ---------- STEP 3 ----------
+@app.route("/consolidation", methods=["GET", "POST"])
 def run_consolidation():
     result = consolidation()
-    return render_template("awstool.html", result=result)
+    if "error" not in result:
+        progress_flags["step3_done"] = True
+
+    return render_template("awstool.html", result=result, **progress_flags)
 
 
-####################################################
-
+# ---------- STEP 2c ----------
 @app.route("/upload_po", methods=["POST"])
 def upload_po():
     if "file" not in request.files:
-        return render_template("awstool.html", result={"error": "No file uploaded"})
+        return render_template("awstool.html", result={"error": "No file uploaded"}, **progress_flags)
 
     file = request.files["file"]
     if file.filename == "":
-        return render_template("awstool.html", result={"error": "No file selected"})
+        return render_template("awstool.html", result={"error": "No file selected"}, **progress_flags)
 
     result = apply_po_adjustments(file)
-    return render_template("awstool.html", result=result)
+    if "error" not in result:
+        progress_flags["step2c_done"] = True
+
+    return render_template("awstool.html", result=result, **progress_flags)
 
 
 
-####################################################
-
+# ---------- STEP 2d ----------
 @app.route("/upload_consolidation", methods=["POST"])
 def upload_consolidation():
     if "file" not in request.files:
-        return render_template("awstool.html", result={"error": "No file uploaded"})
+        return render_template("awstool.html", result={"error": "No file uploaded"}, **progress_flags)
 
     file = request.files["file"]
     if file.filename == "":
-        return render_template("awstool.html", result={"error": "No file selected"})
+        return render_template("awstool.html", result={"error": "No file selected"}, **progress_flags)
 
     result = apply_consolidation_adjustments(file)
-    return render_template("awstool.html", result=result)
+    if "error" not in result:
+        progress_flags["step2d_done"] = True
+
+    return render_template("awstool.html", result=result, **progress_flags)
 
 
+# ---------- STEP 4 ----------
+@app.route("/download_csv")
+def download_csv():
+    from awstool import last_country, last_start_date, last_end_date  
 
-#############################################
+    try:
+        # Format dates safely
+        start_fmt = last_start_date.replace("-", "") if last_start_date else "unknown"
+        end_fmt   = last_end_date.replace("-", "") if last_end_date else "unknown"
+        country   = last_country if last_country else "unknown"
 
+        filename = f"AWS_Billing_Report_{country}_from_{start_fmt}_to_{end_fmt}.csv"
 
-@app.route('/consolidate')
-def consolidate():
-    return render_template('consolidated.html')
+        return send_file(
+            "latest_report.csv",
+            mimetype="text/csv",
+            as_attachment=True,
+            download_name=filename
+        )
+    except FileNotFoundError:
+        return "No report available to download", 400
 
 @app.route('/favicon.ico')
 def favicon():
@@ -172,22 +224,6 @@ def download_file(filename):
         as_attachment=True,
         download_name=filename
     )
-
-@app.route("/download_csv")
-def download_csv():
-    from awstool import last_country, last_start_date, last_end_date  
-    try:
-        # Format filename dynamically
-        base_name = f"AWS_Billing_Report_{last_country}_from_{last_start_date}_to_{last_end_date}.csv"
-        
-        return send_file(
-            "latest_report.csv",
-            mimetype="text/csv",
-            as_attachment=True,
-            download_name=base_name
-        )
-    except FileNotFoundError:
-        return "No report available to download", 400
     
 def transform_sap(df: pd.DataFrame) -> pd.DataFrame:
 
@@ -326,6 +362,7 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))  # fallback to 8000 for local testing
     app.run(host='0.0.0.0', port=port)
     
+
 
 
 
