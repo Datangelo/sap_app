@@ -1,87 +1,47 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-{% block title %}AWS Tool{% endblock %}
+  {# page‐specific CSS/framework imports go here #}
+  {% block head %}{% endblock %}
 
-{% block content %}
-<h2>AWS Tool</h2>
+  {# then your overrides last #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
 
-<!-- Run AWS Tool Form -->
-<form method="POST">
-  <label for="country">Country:</label>
-  <select name="country" id="country" required>
-    <option value="">-- Select --</option>
-    <option value="BE">Belgium (BE)</option>
-    <option value="AT">Austria (AT)</option>
-    <option value="ES">Spain (ES)</option>
-    <!-- add more -->
-  </select>
-  <br><br>
+  <title>{% block title %}BI App{% endblock %}</title>
+</head>
+<body>
+  <div class="logo">biapp</div>
+  <nav class="site-navbar">
+    <ul class="nav-links">
+      <li><a href="{{ url_for('index') }}"            class="nav-link">Home</a></li>
+      <li><a href="{{ url_for('x2cf') }}"   class="nav-link">X2CF</a></li>
+      <li><a href="{{ url_for('run_consolidation') }}" class="nav-link">Consolidate</a></li>
+      <li><a href="{{ url_for('awstool') }}" class="nav-link">AWS Tool</a></li>
 
-  <label for="start_date">Start Date:</label>
-  <input type="date" name="start_date" required>
-  <br><br>
+    </ul>
+  </nav>
 
-  <label for="end_date">End Date:</label>
-  <input type="date" name="end_date" required>
-  <br><br>
+  <div class="site-container">
+    {% block content %}{% endblock %}
+  </div>
 
-  <button type="submit">Run Tool</button>
-</form>
+  <footer>
+    <p>
+      Cloud Ops BI Team – 
+      <a href="mailto:cloudbi@tdsynnex.com">cloudbi@tdsynnex.com</a>
+    </p>
+  </footer>
 
-<hr>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
 
-<!-- Upload Exception File Form -->
-<h3>Upload Exceptions</h3>
-<form action="{{ url_for('upload_exception') }}" method="post" enctype="multipart/form-data">
-  <input type="file" name="file" accept=".csv,.xlsx" required>
-  <button type="submit">Upload & Apply Exceptions</button>
-</form>
-
-<!-- Upload Credit File Form -->
-<h3>Upload Credit File</h3>
-<form action="{{ url_for('upload_credits') }}" method="post" enctype="multipart/form-data">
-  <input type="file" name="file" accept=".csv,.xlsx" required>
-  <button type="submit">Upload & Apply Credits</button>
-</form>
-
-
-<!-- Upload PO Numbers Form -->
-<h3>Upload PO Numbers</h3>
-<form action="{{ url_for('upload_po') }}" method="post" enctype="multipart/form-data">
-  <input type="file" name="file" accept=".csv,.xlsx" required>
-  <button type="submit">Upload & Apply PO</button>
-</form>
-
-
-<!-- Upload Consolidation Form -->
-<h3>Upload Consolidation type</h3>
-<form action="{{ url_for('upload_consolidation') }}" method="post" enctype="multipart/form-data">
-  <input type="file" name="file" accept=".csv,.xlsx" required>
-  <button type="submit">Upload & Apply Consolidation Type</button>
-</form>
-
-<!-- Consolidation Button -->
-  <h3>Run Consolidation</h3>
-  <form action="{{ url_for('run_consolidation') }}" method="post">
-    <button type="submit">Run Consolidation</button>
-  </form>
-
-
-{% if result %}
-  <h3>Result:</h3>
-  {% if result.error %}
-    <p style="color:red;">Error: {{ result.error }}</p>
-  {% else %}
-    <p>Period: {{ result.final_df_message }}</p>
-    <p>Country: {{ result.country }}</p>
-    <p>Seller Cost (sum): {{ result.seller_sum }}</p>
-    <p>Customer Cost (sum): {{ result.customer_sum }}</p>
-
-    <!-- Download Button -->
-    <form action="{{ url_for('download_csv') }}" method="get">
-      <button type="submit">Download Full CSV</button>
-    </form>
-  {% endif %}
-{% endif %}
-{% endblock %}
 
