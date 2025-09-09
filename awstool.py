@@ -81,6 +81,10 @@ def refresh_token(cfg):
 # -----------------------
 def run_awstool(country: str, start_date: str, end_date: str):
     global Billing_report, last_country, last_start_date, last_end_date
+
+    last_country = country
+    last_start_date = start_date
+    last_end_date = end_date  
     """
     Run AWS Tool:
     1. Fetch country-level report (date range from HTML).
@@ -205,9 +209,7 @@ def run_awstool(country: str, start_date: str, end_date: str):
             Billing_report = df_country.copy()
 
 
-        last_country = country
-        last_start_date = start_date
-        last_end_date = end_date    
+          
 
         # Rename for clarity
         rename_mapping = {
@@ -648,6 +650,7 @@ def consolidation():
     except Exception as e:
         print(traceback.format_exc())
         return {"error": str(e)}
+
 
 
 
