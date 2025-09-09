@@ -80,6 +80,7 @@ def refresh_token(cfg):
 # Main Function
 # -----------------------
 def run_awstool(country: str, start_date: str, end_date: str):
+    global Billing_report, last_country, last_start_date, last_end_date
     """
     Run AWS Tool:
     1. Fetch country-level report (date range from HTML).
@@ -647,6 +648,7 @@ def consolidation():
     except Exception as e:
         print(traceback.format_exc())
         return {"error": str(e)}
+
 
 
 
