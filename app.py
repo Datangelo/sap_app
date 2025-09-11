@@ -49,13 +49,6 @@ progress_flags = {
 @app.route("/awstool", methods=["GET", "POST"])
 def awstool():
     result = None
-
-    # Reset flags on GET
-    if request.method == "GET":
-        for key in progress_flags:
-            progress_flags[key] = False
-
-            
     if request.method == "POST":
         country = request.form.get("country")
         start_date = request.form.get("start_date")
@@ -64,6 +57,14 @@ def awstool():
         result = run_awstool(country, start_date, end_date)
         if "error" not in result:
             progress_flags["step1_done"] = True
+
+            # Save metadata for later use in download
+            with open("metadata.json", "w") as f:
+                json.dump({
+                    "country": country,
+                    "start_date": start_date,
+                    "end_date": end_date
+                }, f)
 
     return render_template("awstool.html", result=result, **progress_flags)
 
@@ -150,22 +151,39 @@ def upload_consolidation():
 # ---------- STEP 4 ----------
 @app.route("/download_csv")
 def download_csv():
-    from awstool import last_country, last_start_date, last_end_date  
-
     try:
-        # Format dates safely
-        start_fmt = last_start_date.replace("-", "") if last_start_date else "unknown"
-        end_fmt   = last_end_date.replace("-", "") if last_end_date else "unknown"
-        country   = last_country if last_country else "unknown"
+        # Load metadata instead of relying on globals
+        if os.path.exists("metadata.json"):
+            with open("metadata.json", "r") as f:
+                metadata = json.load(f)
+        else:
+            metadata = {}
+
+        country = metadata.get("country", "unknown")
+        start_fmt = metadata.get("start_date", "unknown").replace("-", "")
+        end_fmt = metadata.get("end_date", "unknown").replace("-", "")
 
         filename = f"AWS_Billing_Report_{country}_from_{start_fmt}_to_{end_fmt}.csv"
 
+        # Load CSV into memory before deleting it
+        with open("latest_report.csv", "rb") as f:
+            file_bytes = io.BytesIO(f.read())
+
+        # --- RESET everything before returning ---
+        progress_flags.update({k: False for k in progress_flags})
+        if os.path.exists("latest_report.csv"):
+            os.remove("latest_report.csv")
+        if os.path.exists("metadata.json"):
+            os.remove("metadata.json")
+
+        # Send file from memory (safe, since file is now deleted locally)
         return send_file(
-            "latest_report.csv",
+            file_bytes,
             mimetype="text/csv",
             as_attachment=True,
             download_name=filename
         )
+
     except FileNotFoundError:
         return "No report available to download", 400
 
@@ -382,6 +400,7 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))  # fallback to 8000 for local testing
     app.run(host='0.0.0.0', port=port)
     
+
 
 
 
