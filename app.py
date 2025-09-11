@@ -32,16 +32,6 @@ def index():
 def x2cf():
     return render_template('x2cf.html')
 
-# Track progress across steps
-progress_flags = {
-    "step1_done": False,
-    "step2a_done": False,
-    "step2b_done": False,
-    "step2c_done": False,
-    "step2d_done": False,
-    "step3_done": False,
-    "step4_done": False,
-}
 
 
 # ---------- STEP 1 ----------
@@ -55,8 +45,6 @@ def awstool():
 
         result = run_awstool(country, start_date, end_date)
         if "error" not in result:
-            progress_flags["step1_done"] = True
-
             # Save metadata for later use in download
             with open("metadata.json", "w") as f:
                 json.dump({
@@ -65,86 +53,70 @@ def awstool():
                     "end_date": end_date
                 }, f)
 
-    return render_template("awstool.html", result=result, **progress_flags)
+    return render_template("awstool.html", result=result)
+
 
 # ---------- STEP 2b ----------
 @app.route("/upload_credits", methods=["POST"])
 def upload_credits():
     if "file" not in request.files:
-        return render_template("awstool.html", result={"error": "No file uploaded"}, **progress_flags)
+        return render_template("awstool.html", result={"error": "No file uploaded"})
 
     file = request.files["file"]
     if file.filename == "":
-        return render_template("awstool.html", result={"error": "No file selected"}, **progress_flags)
+        return render_template("awstool.html", result={"error": "No file selected"})
 
     result = apply_credit_adjustments(file)
-    if "error" not in result:
-        progress_flags["step2b_done"] = True
-
-    return render_template("awstool.html", result=result, **progress_flags)
+    return render_template("awstool.html", result=result)
 
 
 # ---------- STEP 2a ----------
 @app.route("/upload_exception", methods=["POST"])
 def upload_exception():
     if "file" not in request.files:
-        return render_template("awstool.html", result={"error": "No file uploaded"}, **progress_flags)
+        return render_template("awstool.html", result={"error": "No file uploaded"})
 
     file = request.files["file"]
     if file.filename == "":
-        return render_template("awstool.html", result={"error": "No file selected"}, **progress_flags)
+        return render_template("awstool.html", result={"error": "No file selected"})
 
     result = apply_exception(file)
-    if "error" not in result:
-        progress_flags["step2a_done"] = True
-
-    return render_template("awstool.html", result=result, **progress_flags)
-
+    return render_template("awstool.html", result=result)
 
 
 # ---------- STEP 3 ----------
 @app.route("/consolidation", methods=["GET", "POST"])
 def run_consolidation():
     result = consolidation()
-    if "error" not in result:
-        progress_flags["step3_done"] = True
-
-    return render_template("awstool.html", result=result, **progress_flags)
+    return render_template("awstool.html", result=result)
 
 
 # ---------- STEP 2c ----------
 @app.route("/upload_po", methods=["POST"])
 def upload_po():
     if "file" not in request.files:
-        return render_template("awstool.html", result={"error": "No file uploaded"}, **progress_flags)
+        return render_template("awstool.html", result={"error": "No file uploaded"})
 
     file = request.files["file"]
     if file.filename == "":
-        return render_template("awstool.html", result={"error": "No file selected"}, **progress_flags)
+        return render_template("awstool.html", result={"error": "No file selected"})
 
     result = apply_po_adjustments(file)
-    if "error" not in result:
-        progress_flags["step2c_done"] = True
-
-    return render_template("awstool.html", result=result, **progress_flags)
-
+    return render_template("awstool.html", result=result)
 
 
 # ---------- STEP 2d ----------
 @app.route("/upload_consolidation", methods=["POST"])
 def upload_consolidation():
     if "file" not in request.files:
-        return render_template("awstool.html", result={"error": "No file uploaded"}, **progress_flags)
+        return render_template("awstool.html", result={"error": "No file uploaded"})
 
     file = request.files["file"]
     if file.filename == "":
-        return render_template("awstool.html", result={"error": "No file selected"}, **progress_flags)
+        return render_template("awstool.html", result={"error": "No file selected"})
 
     result = apply_consolidation_adjustments(file)
-    if "error" not in result:
-        progress_flags["step2d_done"] = True
-
-    return render_template("awstool.html", result=result, **progress_flags)
+    return render_template("awstool.html", result=result)
 
 
 # ---------- STEP 4 ----------
@@ -169,7 +141,7 @@ def download_csv():
             file_bytes = io.BytesIO(f.read())
 
         # --- RESET everything before returning ---
-        progress_flags.update({k: False for k in progress_flags})
+       
         if os.path.exists("latest_report.csv"):
             os.remove("latest_report.csv")
         if os.path.exists("metadata.json"):
