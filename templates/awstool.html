@@ -86,6 +86,8 @@
   <div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
     <h3>Step 4: Download</h3>
     <p>Period: {{ result.final_df_message }}</p>
+    <p>Seller Cost: {{ result.seller_sum }}</p>
+    <p>Customer Cost: {{ result.customer_sum }}</p>
     <p>Country: {{ result.country }}</p>
 
     {% if result.error %}
