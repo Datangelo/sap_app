@@ -1,4 +1,4 @@
-import os
+import json, os, io
 from io import BytesIO
 from flask import Flask, request, send_file, jsonify, render_template, send_from_directory
 import pandas as pd
@@ -14,15 +14,14 @@ load_dotenv()
 app = Flask(__name__)
 
 # Configuration via environment variables
-STORAGE_ACCOUNT_URL = os.environ.get("STORAGE_ACCOUNT_URL")
-CONTAINER_NAME      = os.environ.get("CONTAINER_NAME")
+#STORAGE_ACCOUNT_URL = os.environ.get("STORAGE_ACCOUNT_URL")
+#CONTAINER_NAME      = os.environ.get("CONTAINER_NAME")
 
 # Initialize blob service client
-blob_service_client = BlobServiceClient(
-    account_url=STORAGE_ACCOUNT_URL,
-    credential=DefaultAzureCredential()
-)
-
+#blob_service_client = BlobServiceClient(
+#    account_url=STORAGE_ACCOUNT_URL,
+#    credential=DefaultAzureCredential()
+#)
 
 
 @app.route('/')
@@ -186,25 +185,8 @@ def download_csv():
 
     except FileNotFoundError:
         return "No report available to download", 400
+    
 
-
-# --- RESET everything before returning ---
-        progress_flags.update({k: False for k in progress_flags})
-        if os.path.exists("latest_report.csv"):
-            os.remove("latest_report.csv")
-        if os.path.exists("metadata.json"):
-            os.remove("metadata.json")
-
-        # Send file as attachment (from memory, file already deleted locally)
-        return send_file(
-            file_bytes,
-            mimetype="text/csv",
-            as_attachment=True,
-            download_name=download_name
-        )
-
-    except FileNotFoundError:
-        return "No report available to download", 400
 
 @app.route('/favicon.ico')
 def favicon():
@@ -400,8 +382,6 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))  # fallback to 8000 for local testing
     app.run(host='0.0.0.0', port=port)
     
-
-
 
 
 
