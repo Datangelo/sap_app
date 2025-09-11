@@ -169,6 +169,25 @@ def download_csv():
     except FileNotFoundError:
         return "No report available to download", 400
 
+
+# --- RESET everything before returning ---
+        progress_flags.update({k: False for k in progress_flags})
+        if os.path.exists("latest_report.csv"):
+            os.remove("latest_report.csv")
+        if os.path.exists("metadata.json"):
+            os.remove("metadata.json")
+
+        # Send file as attachment (from memory, file already deleted locally)
+        return send_file(
+            file_bytes,
+            mimetype="text/csv",
+            as_attachment=True,
+            download_name=download_name
+        )
+
+    except FileNotFoundError:
+        return "No report available to download", 400
+
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(
@@ -363,6 +382,7 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))  # fallback to 8000 for local testing
     app.run(host='0.0.0.0', port=port)
     
+
 
 
 
