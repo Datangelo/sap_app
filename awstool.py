@@ -11,7 +11,7 @@ import traceback
 import numpy as np
 
 
-Billing_report = None
+#Billing_report = None
 last_country = None
 last_start_date = None
 last_end_date = None
@@ -80,7 +80,7 @@ def refresh_token(cfg):
 # Main Function
 # -----------------------
 def run_awstool(country: str, start_date: str, end_date: str):
-    global Billing_report, last_country, last_start_date, last_end_date
+    global  last_country, last_start_date, last_end_date
     """
     Run AWS Tool:
     1. Fetch country-level report (date range from HTML).
@@ -247,11 +247,12 @@ def run_awstool(country: str, start_date: str, end_date: str):
 
 
 def apply_exception(uploaded_file):
-    global Billing_report, last_country, last_start_date, last_end_date
+    global  last_country, last_start_date, last_end_date
 
     expected_headers = ["SAP ID", "Account"]  
 
     try:
+        Billing_report = pd.read_csv("latest_report.csv")
         # Load file (CSV or XLSX)
         if uploaded_file.filename.endswith(".csv"):
             exceptions = pd.read_csv(uploaded_file)
@@ -308,12 +309,13 @@ def apply_exception(uploaded_file):
 
 
 def apply_credit_adjustments(uploaded_file):
-    global Billing_report, last_country, last_start_date, last_end_date
+    global  last_country, last_start_date, last_end_date
 
     expected_headers = ["Account", "Credit", "Credit Remained", "Reseller ID To Delete"]
 
 
     try:
+        Billing_report = pd.read_csv("latest_report.csv")
         # Load file (CSV or XLSX)
         if uploaded_file.filename.endswith(".csv"):
             credit_df = pd.read_csv(uploaded_file)
@@ -381,12 +383,16 @@ def apply_credit_adjustments(uploaded_file):
 
 
 def apply_po_adjustments(uploaded_file):
-    global Billing_report, last_country, last_start_date, last_end_date
+    global  last_country, last_start_date, last_end_date
 
     expected_headers = ["Reseller SAP ID", "End Customer", "PO", "PO Condition"]
 
 
     try:
+        Billing_report = pd.read_csv("latest_report.csv", dtype={"Account": str})
+        Billing_report["Account"] = Billing_report["Account"].str.zfill(12)
+        # If SAP_ID must also be integer:
+        Billing_report["SAP_ID"] = Billing_report["SAP_ID"].astype("Int64")
         # Load file (CSV or XLSX)
         if uploaded_file.filename.endswith(".csv"):
             custom_po_df = pd.read_csv(uploaded_file)
@@ -457,12 +463,13 @@ def apply_po_adjustments(uploaded_file):
 
 
 def apply_consolidation_adjustments(uploaded_file):
-    global Billing_report, last_country, last_start_date, last_end_date
+    global  last_country, last_start_date, last_end_date
 
     expected_headers = ["SAP ID", "Condition Creation/ Country"]
 
 
     try:
+        Billing_report = pd.read_csv("latest_report.csv")
         # Load file (CSV or XLSX)
         if uploaded_file.filename.endswith(".csv"):
             consolidation_df = pd.read_csv(uploaded_file)
@@ -536,9 +543,10 @@ def apply_consolidation_adjustments(uploaded_file):
 # -----------------------------
 
 def consolidation():
-    global Billing_report, last_country, last_start_date, last_end_date
+    global  last_country, last_start_date, last_end_date
 
     try:
+        Billing_report = pd.read_csv("latest_report.csv")
 
         if "PO" not in Billing_report.columns:
             Billing_report["PO"] = np.nan 
@@ -652,7 +660,6 @@ def consolidation():
 
 
     
-
 
 
 
