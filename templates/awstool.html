@@ -8,13 +8,12 @@
 <!-- Step 1: Fetch Data -->
 <div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
   <h3>Step 1: Fetch Data</h3>
-  <p>Status: {% if step1_done %}🟢 Completed{% else %}🔴 Not Done{% endif %}</p>
   <form method="POST">
     <label for="country">Country:</label>
     <select name="country" id="country" required>
       <option value="">-- Select --</option>
-      <option value="BE">Belgium (BE)</option>
       <option value="AT">Austria (AT)</option>
+      <option value="BE">Belgium (BE)</option>
       <option value="ES">Spain (ES)</option>
       <!-- add more -->
     </select>
@@ -35,7 +34,6 @@
 <!-- Step 2a: Upload Exceptions -->
 <div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
   <h3>Step 2a: Upload Exceptions (Optional)</h3>
-  <p>Status: {% if step2a_done %}🟢 Completed{% else %}🔴 Not Done{% endif %}</p>
   <form action="{{ url_for('upload_exception') }}" method="post" enctype="multipart/form-data">
     <input type="file" name="file" accept=".csv,.xlsx" required>
     <button type="submit">Upload & Apply Exceptions</button>
@@ -45,7 +43,6 @@
 <!-- Step 2b: Upload Credits -->
 <div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
   <h3>Step 2b: Upload Credits (Optional)</h3>
-  <p>Status: {% if step2b_done %}🟢 Completed{% else %}🔴 Not Done{% endif %}</p>
   <form action="{{ url_for('upload_credits') }}" method="post" enctype="multipart/form-data">
     <input type="file" name="file" accept=".csv,.xlsx" required>
     <button type="submit">Upload & Apply Credits</button>
@@ -55,7 +52,6 @@
 <!-- Step 2c: Upload PO Numbers -->
 <div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
   <h3>Step 2c: Upload PO Numbers (Optional)</h3>
-  <p>Status: {% if step2c_done %}🟢 Completed{% else %}🔴 Not Done{% endif %}</p>
   <form action="{{ url_for('upload_po') }}" method="post" enctype="multipart/form-data">
     <input type="file" name="file" accept=".csv,.xlsx" required>
     <button type="submit">Upload & Apply PO</button>
@@ -65,7 +61,6 @@
 <!-- Step 2d: Upload Consolidation Type -->
 <div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
   <h3>Step 2d: Upload Consolidation Type (Optional)</h3>
-  <p>Status: {% if step2d_done %}🟢 Completed{% else %}🔴 Not Done{% endif %}</p>
   <form action="{{ url_for('upload_consolidation') }}" method="post" enctype="multipart/form-data">
     <input type="file" name="file" accept=".csv,.xlsx" required>
     <button type="submit">Upload & Apply Consolidation Type</button>
@@ -75,7 +70,6 @@
 <!-- Step 3: Consolidation -->
 <div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
   <h3>Step 3: Run Consolidation</h3>
-  <p>Status: {% if step3_done %}🟢 Completed{% else %}🔴 Not Done{% endif %}</p>
   <form action="{{ url_for('run_consolidation') }}" method="post">
     <button type="submit">Run Consolidation</button>
   </form>
@@ -99,6 +93,5 @@
     {% endif %}
   </div>
 {% endif %}
-
 
 {% endblock %}
