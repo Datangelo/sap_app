@@ -225,6 +225,16 @@ def run_awstool(country: str, start_date: str, end_date: str):
 
         Billing_report.to_csv("latest_report.csv", index=False)
 
+        # save metadata in parallel
+        metadata = {
+        "country": country,
+        "start_date": start_date,
+        "end_date": end_date
+        }
+        
+        with open("metadata.json", "w") as f:
+            json.dump(metadata, f)
+
         # Calculate sums
         seller_sum = Billing_report["Seller Cost"].sum()
         customer_sum = Billing_report["Customer Cost"].sum()
@@ -252,7 +262,10 @@ def apply_exception(uploaded_file):
     expected_headers = ["SAP ID", "Account"]  
 
     try:
-        Billing_report = pd.read_csv("latest_report.csv")
+        Billing_report = pd.read_csv("latest_report.csv", dtype={"Account": str})
+        Billing_report["Account"] = Billing_report["Account"].str.zfill(12)
+        # If SAP_ID must also be integer:
+        Billing_report["SAP_ID"] = Billing_report["SAP_ID"].astype("Int64")
         # Load file (CSV or XLSX)
         if uploaded_file.filename.endswith(".csv"):
             exceptions = pd.read_csv(uploaded_file)
@@ -315,7 +328,10 @@ def apply_credit_adjustments(uploaded_file):
 
 
     try:
-        Billing_report = pd.read_csv("latest_report.csv")
+        Billing_report = pd.read_csv("latest_report.csv", dtype={"Account": str})
+        Billing_report["Account"] = Billing_report["Account"].str.zfill(12)
+        # If SAP_ID must also be integer:
+        Billing_report["SAP_ID"] = Billing_report["SAP_ID"].astype("Int64")
         # Load file (CSV or XLSX)
         if uploaded_file.filename.endswith(".csv"):
             credit_df = pd.read_csv(uploaded_file)
@@ -469,7 +485,10 @@ def apply_consolidation_adjustments(uploaded_file):
 
 
     try:
-        Billing_report = pd.read_csv("latest_report.csv")
+        Billing_report = pd.read_csv("latest_report.csv", dtype={"Account": str})
+        Billing_report["Account"] = Billing_report["Account"].str.zfill(12)
+        # If SAP_ID must also be integer:
+        Billing_report["SAP_ID"] = Billing_report["SAP_ID"].astype("Int64")
         # Load file (CSV or XLSX)
         if uploaded_file.filename.endswith(".csv"):
             consolidation_df = pd.read_csv(uploaded_file)
@@ -546,7 +565,23 @@ def consolidation():
     global  last_country, last_start_date, last_end_date
 
     try:
-        Billing_report = pd.read_csv("latest_report.csv")
+
+        # Reload metadata
+        with open("metadata.json") as f:
+            metadata = json.load(f)
+
+        country = metadata["country"]
+        start_date = metadata["start_date"]
+        end_date = metadata["end_date"]
+
+
+
+
+
+        Billing_report = pd.read_csv("latest_report.csv", dtype={"Account": str})
+        Billing_report["Account"] = Billing_report["Account"].str.zfill(12)
+        # If SAP_ID must also be integer:
+        Billing_report["SAP_ID"] = Billing_report["SAP_ID"].astype("Int64")
 
         if "PO" not in Billing_report.columns:
             Billing_report["PO"] = np.nan 
@@ -572,8 +607,8 @@ def consolidation():
             6688949)
 
         # Convert to datetime and format
-        start_fmt = pd.to_datetime(last_start_date).strftime("%m/%d/%y")
-        end_fmt = pd.to_datetime(last_end_date).strftime("%m/%d/%y")
+        start_fmt = pd.to_datetime(start_date).strftime("%m/%d/%y")
+        end_fmt = pd.to_datetime(end_date).strftime("%m/%d/%y")
         billing_period_str = f"{start_fmt} to {end_fmt}"
 
         Billing_report["Billing period"] = billing_period_str
