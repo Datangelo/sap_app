@@ -240,11 +240,16 @@ def run_awstool(country: str, start_date: str, end_date: str):
         customer_sum = Billing_report["Customer Cost"].sum()
 
         return {
-        "final_df_message": f"from {start_date} to {end_date}",
-        "country": country,
-        "seller_sum": seller_sum,
-        "customer_sum": customer_sum
-    }
+            "final_df_message": f"from {start_date} to {end_date}",
+            "country": country,
+            "seller_sum": Billing_report["Seller Cost"].sum(),
+            "customer_sum": Billing_report["Customer Cost"].sum()
+        }
+
+
+
+
+    
 
     except Exception as e:
         return {"error": str(e)}
@@ -262,6 +267,17 @@ def apply_exception(uploaded_file):
     expected_headers = ["SAP ID", "Account"]  
 
     try:
+
+        # Reload metadata
+        with open("metadata.json") as f:
+            metadata = json.load(f)
+
+        country = metadata["country"]
+        start_date = metadata["start_date"]
+        end_date = metadata["end_date"]
+
+
+
         Billing_report = pd.read_csv("latest_report.csv", dtype={"Account": str})
         Billing_report["Account"] = Billing_report["Account"].str.zfill(12)
         # If SAP_ID must also be integer:
@@ -299,11 +315,16 @@ def apply_exception(uploaded_file):
         customer_sum = Billing_report["Customer Cost"].sum()
 
         return {
-            "final_df_message": f"from {last_start_date} to {last_end_date} (Exception Applied)",
-            "country": last_country,
-            "seller_sum": seller_sum,
-            "customer_sum": customer_sum
-            }
+            "final_df_message": f"from {start_date} to {end_date} (Exception Applied)",
+            "country": country,
+            "seller_sum": Billing_report["Seller Cost"].sum(),
+            "customer_sum": Billing_report["Customer Cost"].sum()
+        }
+
+
+    
+
+
 
     except Exception as e:
         print(traceback.format_exc())
@@ -328,6 +349,18 @@ def apply_credit_adjustments(uploaded_file):
 
 
     try:
+
+        # Reload metadata
+        with open("metadata.json") as f:
+            metadata = json.load(f)
+
+        country = metadata["country"]
+        start_date = metadata["start_date"]
+        end_date = metadata["end_date"]
+
+
+
+
         Billing_report = pd.read_csv("latest_report.csv", dtype={"Account": str})
         Billing_report["Account"] = Billing_report["Account"].str.zfill(12)
         # If SAP_ID must also be integer:
@@ -381,11 +414,13 @@ def apply_credit_adjustments(uploaded_file):
         customer_sum = Billing_report["Customer Cost"].sum()
 
         return {
-            "final_df_message": f"from {last_start_date} to {last_end_date} (Adjusted with credit)",
-            "country": last_country,
-            "seller_sum": seller_sum,
-            "customer_sum": customer_sum
-            }
+            "final_df_message": f"from {start_date} to {end_date} (Adjusted with credit)",
+            "country": country,
+            "seller_sum": Billing_report["Seller Cost"].sum(),
+            "customer_sum": Billing_report["Customer Cost"].sum()
+        }
+
+    
 
     except Exception as e:
         print(traceback.format_exc())
@@ -405,6 +440,17 @@ def apply_po_adjustments(uploaded_file):
 
 
     try:
+
+        # Reload metadata
+        with open("metadata.json") as f:
+            metadata = json.load(f)
+
+        country = metadata["country"]
+        start_date = metadata["start_date"]
+        end_date = metadata["end_date"]
+
+
+
         Billing_report = pd.read_csv("latest_report.csv", dtype={"Account": str})
         Billing_report["Account"] = Billing_report["Account"].str.zfill(12)
         # If SAP_ID must also be integer:
@@ -459,12 +505,15 @@ def apply_po_adjustments(uploaded_file):
         seller_sum = Billing_report["Seller Cost"].sum()
         customer_sum = Billing_report["Customer Cost"].sum()
 
+
         return {
-            "final_df_message": f"from {last_start_date} to {last_end_date} (Adjusted with PO)",
-            "country": last_country,
-            "seller_sum": seller_sum,
-            "customer_sum": customer_sum
-            }
+            "final_df_message": f"from {start_date} to {end_date} (Adjusted with PO)",
+            "country": country,
+            "seller_sum": Billing_report["Seller Cost"].sum(),
+            "customer_sum": Billing_report["Customer Cost"].sum()
+        }
+
+    
 
     except Exception as e:
         print(traceback.format_exc())
@@ -485,6 +534,16 @@ def apply_consolidation_adjustments(uploaded_file):
 
 
     try:
+
+        # Reload metadata
+        with open("metadata.json") as f:
+            metadata = json.load(f)
+
+        country = metadata["country"]
+        start_date = metadata["start_date"]
+        end_date = metadata["end_date"]
+
+
         Billing_report = pd.read_csv("latest_report.csv", dtype={"Account": str})
         Billing_report["Account"] = Billing_report["Account"].str.zfill(12)
         # If SAP_ID must also be integer:
@@ -546,11 +605,15 @@ def apply_consolidation_adjustments(uploaded_file):
         customer_sum = Billing_report["Customer Cost"].sum()
 
         return {
-            "final_df_message": f"from {last_start_date} to {last_end_date} (Adjusted with Consolidation Type)",
-            "country": last_country,
-            "seller_sum": seller_sum,
-            "customer_sum": customer_sum
-            }
+            "final_df_message": f"from {start_date} to {end_date} (Adjusted with Consolidation Type)",
+            "country": country,
+            "seller_sum": Billing_report["Seller Cost"].sum(),
+            "customer_sum": Billing_report["Customer Cost"].sum()
+        }
+
+    
+
+
 
     except Exception as e:
         print(traceback.format_exc())
@@ -682,10 +745,10 @@ def consolidation():
         customer_sum = Billing_report["Customer Cost"].sum()
 
         return {
-            "final_df_message": f"from {last_start_date} to {last_end_date} [Consolidated]",
-            "country": last_country,
-            "seller_sum": seller_sum,
-            "customer_sum": customer_sum
+            "final_df_message": f"from {start_date} to {end_date} [Consolidated]",
+            "country": country,
+            "seller_sum": Billing_report["Seller Cost"].sum(),
+            "customer_sum": Billing_report["Customer Cost"].sum()
         }
 
     except Exception as e:
