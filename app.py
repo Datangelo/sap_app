@@ -1,11 +1,11 @@
-import json, os, io
+import json, os, io, traceback
 from io import BytesIO
 from flask import Flask, request, send_file, jsonify, render_template, send_from_directory
 import pandas as pd
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
 from dotenv import load_dotenv
-from awstool import run_awstool, apply_credit_adjustments,apply_po_adjustments,apply_consolidation_adjustments,apply_exception,consolidation
+from awstool import run_awstool, apply_credit_adjustments,apply_po_adjustments,apply_consolidation_adjustments,apply_exception,consolidation,get_blob_service_client
 from awstool import last_country, last_start_date, last_end_date  # import globals
 import csv
 
@@ -123,7 +123,7 @@ def upload_consolidation():
 @app.route("/download_csv")
 def download_csv():
     try:
-        # Load metadata instead of relying on globals
+        # --- Load metadata ---
         if os.path.exists("metadata.json"):
             with open("metadata.json", "r") as f:
                 metadata = json.load(f)
@@ -136,18 +136,24 @@ def download_csv():
 
         filename = f"AWS_Billing_Report_{country}_from_{start_fmt}_to_{end_fmt}.csv"
 
-        # Load CSV into memory before deleting it
+        # --- Load CSV into memory ---
         with open("latest_report.csv", "rb") as f:
             file_bytes = io.BytesIO(f.read())
 
-        # --- RESET everything before returning ---
-       
-        if os.path.exists("latest_report.csv"):
-            os.remove("latest_report.csv")
-        if os.path.exists("metadata.json"):
-            os.remove("metadata.json")
+        # --- Upload to Azure Blob Storage ---
+        try:
+            blob_service = get_blob_service_client()
+            container_client = blob_service.get_container_client("billing-reports")
 
-        # Send file from memory (safe, since file is now deleted locally)
+            # Upload in-memory bytes
+            file_bytes.seek(0)  # reset pointer before upload
+            container_client.upload_blob(name=filename, data=file_bytes, overwrite=True)
+            print(f"✅ Uploaded {filename} to Azure Blob Storage")
+        except Exception as be:
+            print("⚠️ Blob upload failed:", be)
+
+        # --- Return file to user (no reset, files remain locally) ---
+        file_bytes.seek(0)  # reset pointer again for download
         return send_file(
             file_bytes,
             mimetype="text/csv",
@@ -157,6 +163,39 @@ def download_csv():
 
     except FileNotFoundError:
         return "No report available to download", 400
+    except Exception as e:
+        print(traceback.format_exc())
+        return {"error": str(e)}, 500
+    
+    #----------- Templates ----------
+
+@app.route("/download_template/<template>")
+def download_template(template):
+    import io
+    import csv
+
+    templates = {
+        "exceptions": ["SAP ID", "Account"],
+        "credits": ["Account", "Credit", "Credit Remained","Reseller ID To Delete"],
+        "po": ["Reseller SAP ID", "End Customer", "PO", "PO Condition"],
+        "consolidation": ["SAP ID", "Condition Creation/ Country"]
+    }
+
+    if template not in templates:
+        return "Invalid template requested", 400
+
+    # Create CSV in memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(templates[template])
+    output.seek(0)
+
+    return send_file(
+        io.BytesIO(output.getvalue().encode("utf-8")),
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name=f"{template}_template.csv"
+    )
     
 
 

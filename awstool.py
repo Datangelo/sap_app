@@ -1,14 +1,18 @@
 # awstool.py
-import io
+import io, os
 import json
 import http.client
 import urllib.parse
 import pandas as pd
 from datetime import datetime, timedelta
 from azure.identity import DefaultAzureCredential
+from azure.storage.blob import BlobServiceClient
 from azure.keyvault.secrets import SecretClient
 import traceback
 import numpy as np
+
+
+
 
 
 #Billing_report = None
@@ -330,9 +334,6 @@ def apply_exception(uploaded_file):
         print(traceback.format_exc())
         return {"error": str(e)}
     
-
-    # -----------------------------
-# New: function to add PO number to Billing_report
 
 
 
@@ -754,6 +755,29 @@ def consolidation():
     except Exception as e:
         print(traceback.format_exc())
         return {"error": str(e)}
+    
+
+# New: function to get BlobServiceClient
+
+def get_blob_service_client():
+    conn_str = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+    if conn_str:
+        return BlobServiceClient.from_connection_string(conn_str)
+    else:
+        # Use managed identity when deployed in Azure
+        credential = DefaultAzureCredential()
+        return BlobServiceClient(
+            account_url="https://sapbillingstorage.blob.core.windows.net",
+            credential=credential
+        )
+
+    
+
+
+    
+
+
+    
 
 
 
