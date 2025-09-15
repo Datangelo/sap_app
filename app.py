@@ -5,7 +5,7 @@ import pandas as pd
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
 from dotenv import load_dotenv
-from awstool import run_awstool, apply_credit_adjustments,apply_po_adjustments,apply_consolidation_adjustments,apply_exception,consolidation,get_blob_service_client
+from awstool import run_awstool, apply_credit_adjustments,apply_po_adjustments,apply_exception,consolidation,get_blob_service_client
 from awstool import last_country, last_start_date, last_end_date  # import globals
 import csv
 
@@ -105,20 +105,6 @@ def upload_po():
     return render_template("awstool.html", result=result)
 
 
-# ---------- STEP 2d ----------
-@app.route("/upload_consolidation", methods=["POST"])
-def upload_consolidation():
-    if "file" not in request.files:
-        return render_template("awstool.html", result={"error": "No file uploaded"})
-
-    file = request.files["file"]
-    if file.filename == "":
-        return render_template("awstool.html", result={"error": "No file selected"})
-
-    result = apply_consolidation_adjustments(file)
-    return render_template("awstool.html", result=result)
-
-
 # ---------- STEP 4 ----------
 @app.route("/download_csv")
 def download_csv():
@@ -176,7 +162,7 @@ def download_template(template):
 
     templates = {
         "exceptions": ["SAP ID", "Account"],
-        "credits": ["Account", "Credit", "Credit Remained","Reseller ID To Delete"],
+        "credits": ["Account", "Credit"],
         "po": ["Reseller SAP ID", "End Customer", "PO", "PO Condition"],
         "consolidation": ["SAP ID", "Condition Creation/ Country"]
     }

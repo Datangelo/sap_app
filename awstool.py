@@ -346,7 +346,7 @@ def apply_exception(uploaded_file):
 def apply_credit_adjustments(uploaded_file):
     global  last_country, last_start_date, last_end_date
 
-    expected_headers = ["Account", "Credit", "Credit Remained", "Reseller ID To Delete"]
+    expected_headers = ["Account", "Credit"]
 
 
     try:
@@ -458,7 +458,7 @@ def apply_po_adjustments(uploaded_file):
         Billing_report["SAP_ID"] = Billing_report["SAP_ID"].astype("Int64")
         # Load file (CSV or XLSX)
         if uploaded_file.filename.endswith(".csv"):
-            custom_po_df = pd.read_csv(uploaded_file)
+            custom_po_df = pd.read_csv(uploaded_file, encoding="latin1")
         elif uploaded_file.filename.endswith(".xlsx"):
             custom_po_df = pd.read_excel(uploaded_file)
         else:
@@ -525,100 +525,6 @@ def apply_po_adjustments(uploaded_file):
         # -----------------------------
 # New: function to add consolidation  to Billing_report
 # -----------------------------
-
-
-
-def apply_consolidation_adjustments(uploaded_file):
-    global  last_country, last_start_date, last_end_date
-
-    expected_headers = ["SAP ID", "Condition Creation/ Country"]
-
-
-    try:
-
-        # Reload metadata
-        with open("metadata.json") as f:
-            metadata = json.load(f)
-
-        country = metadata["country"]
-        start_date = metadata["start_date"]
-        end_date = metadata["end_date"]
-
-
-        Billing_report = pd.read_csv("latest_report.csv", dtype={"Account": str})
-        Billing_report["Account"] = Billing_report["Account"].str.zfill(12)
-        # If SAP_ID must also be integer:
-        Billing_report["SAP_ID"] = Billing_report["SAP_ID"].astype("Int64")
-        # Load file (CSV or XLSX)
-        if uploaded_file.filename.endswith(".csv"):
-            consolidation_df = pd.read_csv(uploaded_file)
-        elif uploaded_file.filename.endswith(".xlsx"):
-            consolidation_df = pd.read_excel(uploaded_file)
-        else:
-            return {"error": "Unsupported file type. Please upload credit with proper format."}
-
-        # Validate headers
-        if list(consolidation_df.columns) != expected_headers:
-            return {"error": f"Header is not correct. Expected: {', '.join(expected_headers)}"}
-
-        consolidation_unique = consolidation_df[["SAP ID","Condition Creation/ Country"
-                        ]].drop_duplicates()
-        
-        consolidation_df['SAP ID'] = consolidation_df['SAP ID'].astype('Int64')
-
-
-        consolidation_unique['Condition Creation/ Country'] = (
-            consolidation_unique['Condition Creation/ Country'].str.strip()
-            )
-        
-        
-        Billing_report = pd.merge(
-            Billing_report,
-            consolidation_unique,
-            left_on=['SAP_ID'],
-            right_on=['SAP ID'],
-            how='left'
-            )
-        
-        Billing_report['Condition Creation/ Country'] = Billing_report['Condition Creation/ Country'].fillna('Creation by Reseller')
-
-        #Billing_report = Billing_report.drop('SAP ID', axis=1)
-
-
-
-        #Billing_report['Material_id'] = np.where(Billing_report['Materials'].str.contains('TechCARE', case=False, na=False),11532184,6688949)
-
-
-        # Convert to datetime and format
-        #start_fmt = pd.to_datetime(last_start_date).strftime("%m/%d/%y")
-        #end_fmt = pd.to_datetime(last_end_date).strftime("%m/%d/%y")
-        # Create billing period string
-        #billing_period_str = f"{start_fmt} to {end_fmt}"
-        # Add to DataFrame
-        #Billing_report["Billing period"] = billing_period_str
-
-        #Billing_report.rename(columns={"Condition Creation/ Country":'Creation Condition'}, inplace=True)
- 
-        Billing_report.to_csv("latest_report.csv", index=False)
-
-        # Update summary after adjustments
-        seller_sum = Billing_report["Seller Cost"].sum()
-        customer_sum = Billing_report["Customer Cost"].sum()
-
-        return {
-            "final_df_message": f"from {start_date} to {end_date} (Adjusted with Consolidation Type)",
-            "country": country,
-            "seller_sum": Billing_report["Seller Cost"].sum(),
-            "customer_sum": Billing_report["Customer Cost"].sum()
-        }
-
-    
-
-
-
-    except Exception as e:
-        print(traceback.format_exc())
-        return {"error": str(e)}
     
 
             # -----------------------------
@@ -643,6 +549,42 @@ def consolidation():
 
 
         Billing_report = pd.read_csv("latest_report.csv", dtype={"Account": str})
+
+        special_consolidation = {"SAP ID": [
+            447538, 563032, 430330, 770487, 429505, 778985, 783006, 710254,
+            422480, 301250, 601691, 572483, 778402, 782581, 588334, 423826,
+            134005, 1003630, 1006910, 1003495, 412496, 439613, 689040, 
+            577302, 1000219, 432699, 105012, 435825, 434736, 451551, 732071, 
+            421842, 424494, 702179, 514159, 783872, 423784, 
+            429620, 427777, 785876, 583987, 441239, 425118, 430033, 
+            452530, 752099]}
+        
+        consolidation_df = pd.DataFrame(special_consolidation)
+
+        consolidation_df["Condition Creation/ Country"]="Creation By End Customer"
+
+        consolidation_unique = consolidation_df[["SAP ID","Condition Creation/ Country"
+                        ]].drop_duplicates()
+        
+        consolidation_df['SAP ID'] = consolidation_df['SAP ID'].astype('Int64')
+
+
+        consolidation_unique['Condition Creation/ Country'] = (
+            consolidation_unique['Condition Creation/ Country'].str.strip()
+            )
+        
+        
+        Billing_report = pd.merge(
+            Billing_report,
+            consolidation_unique,
+            left_on=['SAP_ID'],
+            right_on=['SAP ID'],
+            how='left'
+            )
+        
+        Billing_report['Condition Creation/ Country'] = Billing_report['Condition Creation/ Country'].fillna('Creation by Reseller')
+
+
         Billing_report["Account"] = Billing_report["Account"].str.zfill(12)
         # If SAP_ID must also be integer:
         Billing_report["SAP_ID"] = Billing_report["SAP_ID"].astype("Int64")
@@ -677,6 +619,10 @@ def consolidation():
 
         Billing_report["Billing period"] = billing_period_str
         Billing_report['Condition Creation/ Country'] = Billing_report['Condition Creation/ Country'].str.lower()
+
+        Billing_report["SAP_ID"] = Billing_report["SAP_ID"].replace("", pd.NA)  # turn empty strings into NaN
+        Billing_report["SAP_ID"] = Billing_report["SAP_ID"].fillna(000000)
+
         Billing_report = Billing_report[Billing_report['SAP_ID'].notna()]
 
         # Split DataFrames
