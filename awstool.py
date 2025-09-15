@@ -719,7 +719,7 @@ def get_blob_service_client():
         # Use managed identity when deployed in Azure
         credential = DefaultAzureCredential()
         return BlobServiceClient(
-            account_url="https://sapbillingstorage.blob.core.windows.net",
+            account_url="https://awstoolstorage.blob.core.windows.net",
             credential=credential
         )
 
@@ -734,6 +734,7 @@ def get_blob_service_client():
 
 
     
+
 
 
 
