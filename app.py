@@ -1,11 +1,12 @@
-import os
+import json, os, io, traceback
 from io import BytesIO
 from flask import Flask, request, send_file, jsonify, render_template, send_from_directory
 import pandas as pd
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
 from dotenv import load_dotenv
-from awstool import run_awstool
+from awstool import run_awstool, apply_credit_adjustments,apply_po_adjustments,apply_exception,consolidation,get_blob_service_client
+from awstool import last_country, last_start_date, last_end_date  # import globals
 import csv
 
 load_dotenv() 
@@ -13,14 +14,15 @@ load_dotenv()
 app = Flask(__name__)
 
 # Configuration via environment variables
-STORAGE_ACCOUNT_URL = os.environ.get("STORAGE_ACCOUNT_URL")
-CONTAINER_NAME      = os.environ.get("CONTAINER_NAME")
+#STORAGE_ACCOUNT_URL = os.environ.get("STORAGE_ACCOUNT_URL")
+#CONTAINER_NAME      = os.environ.get("CONTAINER_NAME")
 
 # Initialize blob service client
-blob_service_client = BlobServiceClient(
-    account_url=STORAGE_ACCOUNT_URL,
-    credential=DefaultAzureCredential()
-)
+#blob_service_client = BlobServiceClient(
+#    account_url=STORAGE_ACCOUNT_URL,
+#    credential=DefaultAzureCredential()
+#)
+
 
 @app.route('/')
 def index():
@@ -30,6 +32,9 @@ def index():
 def x2cf():
     return render_template('x2cf.html')
 
+
+
+# ---------- STEP 1 ----------
 @app.route("/awstool", methods=["GET", "POST"])
 def awstool():
     result = None
@@ -39,12 +44,146 @@ def awstool():
         end_date = request.form.get("end_date")
 
         result = run_awstool(country, start_date, end_date)
+        if "error" not in result:
+            # Save metadata for later use in download
+            with open("metadata.json", "w") as f:
+                json.dump({
+                    "country": country,
+                    "start_date": start_date,
+                    "end_date": end_date
+                }, f)
 
     return render_template("awstool.html", result=result)
 
-@app.route('/consolidate')
-def consolidate():
-    return render_template('consolidated.html')
+
+# ---------- STEP 2b ----------
+@app.route("/upload_credits", methods=["POST"])
+def upload_credits():
+    if "file" not in request.files:
+        return render_template("awstool.html", result={"error": "No file uploaded"})
+
+    file = request.files["file"]
+    if file.filename == "":
+        return render_template("awstool.html", result={"error": "No file selected"})
+
+    result = apply_credit_adjustments(file)
+    return render_template("awstool.html", result=result)
+
+
+# ---------- STEP 2a ----------
+@app.route("/upload_exception", methods=["POST"])
+def upload_exception():
+    if "file" not in request.files:
+        return render_template("awstool.html", result={"error": "No file uploaded"})
+
+    file = request.files["file"]
+    if file.filename == "":
+        return render_template("awstool.html", result={"error": "No file selected"})
+
+    result = apply_exception(file)
+    return render_template("awstool.html", result=result)
+
+
+# ---------- STEP 3 ----------
+@app.route("/consolidation", methods=["GET", "POST"])
+def run_consolidation():
+    result = consolidation()
+    return render_template("awstool.html", result=result)
+
+
+# ---------- STEP 2c ----------
+@app.route("/upload_po", methods=["POST"])
+def upload_po():
+    if "file" not in request.files:
+        return render_template("awstool.html", result={"error": "No file uploaded"})
+
+    file = request.files["file"]
+    if file.filename == "":
+        return render_template("awstool.html", result={"error": "No file selected"})
+
+    result = apply_po_adjustments(file)
+    return render_template("awstool.html", result=result)
+
+
+# ---------- STEP 4 ----------
+@app.route("/download_csv")
+def download_csv():
+    try:
+        # --- Load metadata ---
+        if os.path.exists("metadata.json"):
+            with open("metadata.json", "r") as f:
+                metadata = json.load(f)
+        else:
+            metadata = {}
+
+        country = metadata.get("country", "unknown")
+        start_fmt = metadata.get("start_date", "unknown").replace("-", "")
+        end_fmt = metadata.get("end_date", "unknown").replace("-", "")
+
+        filename = f"AWS_Billing_Report_{country}_from_{start_fmt}_to_{end_fmt}.csv"
+
+        # --- Load CSV into memory ---
+        with open("latest_report.csv", "rb") as f:
+            file_bytes = io.BytesIO(f.read())
+
+        # --- Upload to Azure Blob Storage ---
+        try:
+            blob_service = get_blob_service_client()
+            container_client = blob_service.get_container_client("billing-reports")
+
+            # Upload in-memory bytes
+            file_bytes.seek(0)  # reset pointer before upload
+            container_client.upload_blob(name=filename, data=file_bytes, overwrite=True)
+            print(f"✅ Uploaded {filename} to Azure Blob Storage")
+        except Exception as be:
+            print("⚠️ Blob upload failed:", be)
+
+        # --- Return file to user (no reset, files remain locally) ---
+        file_bytes.seek(0)  # reset pointer again for download
+        return send_file(
+            file_bytes,
+            mimetype="text/csv",
+            as_attachment=True,
+            download_name=filename
+        )
+
+    except FileNotFoundError:
+        return "No report available to download", 400
+    except Exception as e:
+        print(traceback.format_exc())
+        return {"error": str(e)}, 500
+    
+    #----------- Templates ----------
+
+@app.route("/download_template/<template>")
+def download_template(template):
+    import io
+    import csv
+
+    templates = {
+        "exceptions": ["SAP ID", "Account"],
+        "credits": ["Account", "Credit"],
+        "po": ["Reseller SAP ID", "End Customer", "PO", "PO Condition"],
+        "consolidation": ["SAP ID", "Condition Creation/ Country"]
+    }
+
+    if template not in templates:
+        return "Invalid template requested", 400
+
+    # Create CSV in memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(templates[template])
+    output.seek(0)
+
+    return send_file(
+        io.BytesIO(output.getvalue().encode("utf-8")),
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name=f"{template}_template.csv"
+    )
+    
+
 
 @app.route('/favicon.ico')
 def favicon():
@@ -100,6 +239,8 @@ def download_file(filename):
         as_attachment=True,
         download_name=filename
     )
+
+
     
 def transform_sap(df: pd.DataFrame) -> pd.DataFrame:
 
@@ -238,6 +379,10 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))  # fallback to 8000 for local testing
     app.run(host='0.0.0.0', port=port)
     
+
+
+
+
 
 
 
