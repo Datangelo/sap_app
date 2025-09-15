@@ -38,6 +38,7 @@
     <input type="file" name="file" accept=".csv,.xlsx" required>
     <button type="submit">Upload & Apply Exceptions</button>
   </form>
+  <p><a href="{{ url_for('download_template', template='exceptions') }}">Download Exceptions Template</a></p>
 </div>
 
 <!-- Step 2b: Upload Credits -->
@@ -47,6 +48,7 @@
     <input type="file" name="file" accept=".csv,.xlsx" required>
     <button type="submit">Upload & Apply Credits</button>
   </form>
+  <p><a href="{{ url_for('download_template', template='credits') }}">Download Credits Template</a></p>
 </div>
 
 <!-- Step 2c: Upload PO Numbers -->
@@ -56,16 +58,10 @@
     <input type="file" name="file" accept=".csv,.xlsx" required>
     <button type="submit">Upload & Apply PO</button>
   </form>
+  <p><a href="{{ url_for('download_template', template='po') }}">Download PO Template</a></p>
 </div>
 
-<!-- Step 2d: Upload Consolidation Type -->
-<div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
-  <h3>Step 2d: Upload Consolidation Type (Optional)</h3>
-  <form action="{{ url_for('upload_consolidation') }}" method="post" enctype="multipart/form-data">
-    <input type="file" name="file" accept=".csv,.xlsx" required>
-    <button type="submit">Upload & Apply Consolidation Type</button>
-  </form>
-</div>
+
 
 <!-- Step 3: Consolidation -->
 <div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
