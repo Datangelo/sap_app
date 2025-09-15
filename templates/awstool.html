@@ -5,54 +5,89 @@
 {% block content %}
 <h2>AWS Tool</h2>
 
-<form method="POST">
-  <label for="country">Country:</label>
-  <select name="country" id="country" required>
-    <option value="">-- Select --</option>
-    <option value="BE">Belgium (BE)</option>
-    <option value="AT">Austria (AT)</option>
-    <option value="ES">Spain (ES)</option>
-    <!-- add more -->
-  </select>
-  <br><br>
+<!-- Step 1: Fetch Data -->
+<div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
+  <h3>Step 1: Fetch Data</h3>
+  <form method="POST">
+    <label for="country">Country:</label>
+    <select name="country" id="country" required>
+      <option value="">-- Select --</option>
+      <option value="AT">Austria (AT)</option>
+      <option value="BE">Belgium (BE)</option>
+      <option value="ES">Spain (ES)</option>
+      <!-- add more -->
+    </select>
+    <br><br>
 
-  <label for="start_date">Start Date:</label>
-  <input type="date" name="start_date" required>
-  <br><br>
+    <label for="start_date">Start Date:</label>
+    <input type="date" name="start_date" required>
+    <br><br>
 
-  <label for="end_date">End Date:</label>
-  <input type="date" name="end_date" required>
-  <br><br>
+    <label for="end_date">End Date:</label>
+    <input type="date" name="end_date" required>
+    <br><br>
 
-  <button type="submit">Run Tool</button>
-</form>
+    <button type="submit">Fetch Data from ION</button>
+  </form>
+</div>
 
+<!-- Step 2a: Upload Exceptions -->
+<div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
+  <h3>Step 2a: Upload Exceptions (Optional)</h3>
+  <form action="{{ url_for('upload_exception') }}" method="post" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".csv,.xlsx" required>
+    <button type="submit">Upload & Apply Exceptions</button>
+  </form>
+  <p><a href="{{ url_for('download_template', template='exceptions') }}">Download Exceptions Template</a></p>
+</div>
+
+<!-- Step 2b: Upload Credits -->
+<div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
+  <h3>Step 2b: Upload Credits (Optional)</h3>
+  <form action="{{ url_for('upload_credits') }}" method="post" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".csv,.xlsx" required>
+    <button type="submit">Upload & Apply Credits</button>
+  </form>
+  <p><a href="{{ url_for('download_template', template='credits') }}">Download Credits Template</a></p>
+</div>
+
+<!-- Step 2c: Upload PO Numbers -->
+<div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
+  <h3>Step 2c: Upload PO Numbers (Optional)</h3>
+  <form action="{{ url_for('upload_po') }}" method="post" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".csv,.xlsx" required>
+    <button type="submit">Upload & Apply PO</button>
+  </form>
+  <p><a href="{{ url_for('download_template', template='po') }}">Download PO Template</a></p>
+</div>
+
+
+
+<!-- Step 3: Consolidation -->
+<div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
+  <h3>Step 3: Run Consolidation</h3>
+  <form action="{{ url_for('run_consolidation') }}" method="post">
+    <button type="submit">Run Consolidation</button>
+  </form>
+</div>
+
+<!-- Step 4: Download -->
 {% if result %}
-  <h3>Result:</h3>
-  {% if result.error %}
-    <p style="color:red;">Error: {{ result.error }}</p>
-  {% else %}
-    <p>2ndAPI: {{ result.final_df_message }}</p>
+  <div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
+    <h3>Step 4: Download</h3>
+    <p>Period: {{ result.final_df_message }}</p>
+    <p>Seller Cost: {{ result.seller_sum }}</p>
+    <p>Customer Cost: {{ result.customer_sum }}</p>
     <p>Country: {{ result.country }}</p>
-    <table border="1">
-      <tr>
-        {% for col in result.rows[0].keys() %}
-          <th>{{ col }}</th>
-        {% endfor %}
-      </tr>
-      {% for row in result.rows %}
-        <tr>
-          {% for val in row.values() %}
-            <td>{{ val }}</td>
-          {% endfor %}
-        </tr>
-      {% endfor %}
-    </table>
-  {% endif %}
+
+    {% if result.error %}
+      <p style="color:red;">Error: {{ result.error }}</p>
+    {% else %}
+      <form action="{{ url_for('download_csv') }}" method="get">
+        <button type="submit">Download Full CSV</button>
+      </form>
+    {% endif %}
+  </div>
 {% endif %}
+
 {% endblock %}
-
-
-
-
-
