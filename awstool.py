@@ -665,6 +665,14 @@ def consolidation():
             'End_Customer': 'End Customer'
         }, inplace=True)
 
+        # Calculate sums for summary
+        seller_sum = Billing_report["Seller Cost"].sum()
+        customer_sum = Billing_report["Customer Cost"].sum()
+
+        Billing_report["Seller Cost"] = pd.to_numeric(Billing_report["Seller Cost"], errors='coerce').round(2)
+        Billing_report["Customer Cost"] = pd.to_numeric(Billing_report["Customer Cost"], errors='coerce').round(2)
+        Billing_report["Margin"] = pd.to_numeric(Billing_report["Margin"], errors='coerce').round(2)
+
         # Reorder columns
         Billing_report = Billing_report[[
             'Reseller Name',
@@ -687,9 +695,7 @@ def consolidation():
         # Save latest version
         Billing_report.to_csv("latest_report.csv", index=False)
 
-        # Calculate sums for summary
-        seller_sum = Billing_report["Seller Cost"].sum()
-        customer_sum = Billing_report["Customer Cost"].sum()
+        
 
         return {
             "final_df_message": f"from {start_date} to {end_date} [Consolidated]",
@@ -728,6 +734,7 @@ def get_blob_service_client():
 
 
     
+
 
 
 
