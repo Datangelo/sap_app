@@ -703,19 +703,6 @@ def consolidation():
         return {"error": str(e)}
     
 
-# New: function to get BlobServiceClient
-
-def get_blob_service_client():
-    conn_str = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
-    if conn_str:
-        return BlobServiceClient.from_connection_string(conn_str)
-    else:
-        # Use managed identity when deployed in Azure
-        credential = DefaultAzureCredential()
-        return BlobServiceClient(
-            account_url="https://sapbillingstorage.blob.core.windows.net",
-            credential=credential
-        )
 
     
 
@@ -728,6 +715,7 @@ def get_blob_service_client():
 
 
     
+
 
 
 
