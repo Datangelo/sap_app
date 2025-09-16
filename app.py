@@ -17,11 +17,27 @@ app = Flask(__name__)
 #STORAGE_ACCOUNT_URL = os.environ.get("STORAGE_ACCOUNT_URL")
 #CONTAINER_NAME      = os.environ.get("CONTAINER_NAME")
 
+#STORAGE_ACCOUNT_URL="https://awstoolstorage.blob.core.windows.net"
+#CONTAINER_NAME="billing-report-uploaded"
+
 # Initialize blob service client
-#blob_service_client = BlobServiceClient(
-#    account_url=STORAGE_ACCOUNT_URL,
-#    credential=DefaultAzureCredential()
-#)
+#blob_service_client = BlobServiceClient(    account_url=STORAGE_ACCOUNT_URL,credential=DefaultAzureCredential())
+
+
+
+
+# Storage account info
+STORAGE_ACCOUNT_URL = "https://awstoolstorage.blob.core.windows.net"
+STORAGE_ACCOUNT_KEY = "B1WBV525CS5FV3CvglVxIzAckxRYEv6tFE2DtTNpSV/6T1x4+9XP4mWYBdpvmqO/BbVXFNqqZlWV+ASt7CqrJQ=="
+
+# Container you want to upload to
+CONTAINER_NAME = "billing-report-uploaded"
+
+# Create blob service client
+blob_service_client = BlobServiceClient(
+    account_url=STORAGE_ACCOUNT_URL,
+    credential=STORAGE_ACCOUNT_KEY
+)
 
 
 @app.route('/')
@@ -126,19 +142,15 @@ def download_csv():
         with open("latest_report.csv", "rb") as f:
             file_bytes = io.BytesIO(f.read())
 
-        # --- Upload to Azure Blob Storage ---
-        try:
-            blob_service = get_blob_service_client()
-            container_client = blob_service.get_container_client("billing-reports")
+        # --- Upload to Azure Blob ---
+        file_bytes.seek(0)  # reset pointer before upload
+        blob_client = blob_service_client.get_blob_client(
+            container=CONTAINER_NAME,
+            blob=filename
+        )
+        blob_client.upload_blob(file_bytes, overwrite=True)
 
-            # Upload in-memory bytes
-            file_bytes.seek(0)  # reset pointer before upload
-            container_client.upload_blob(name=filename, data=file_bytes, overwrite=True)
-            print(f"✅ Uploaded {filename} to Azure Blob Storage")
-        except Exception as be:
-            print("⚠️ Blob upload failed:", be)
-
-        # --- Return file to user (no reset, files remain locally) ---
+        # --- Return file to user ---
         file_bytes.seek(0)  # reset pointer again for download
         return send_file(
             file_bytes,
@@ -147,11 +159,8 @@ def download_csv():
             download_name=filename
         )
 
-    except FileNotFoundError:
-        return "No report available to download", 400
     except Exception as e:
-        print(traceback.format_exc())
-        return {"error": str(e)}, 500
+        return f"Error: {str(e)}", 500
     
     #----------- Templates ----------
 
