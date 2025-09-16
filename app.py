@@ -18,22 +18,13 @@ STORAGE_ACCOUNT_URL = os.environ.get("STORAGE_ACCOUNT_URL")
 CONTAINER_NAME = os.environ.get("CONTAINER_NAME")
 
 
-STORAGE_ACCOUNT_URL = f"https://awstoolstorage.blob.core.windows.net"
-CONTAINER_NAME = "billing-report-uploaded"
+#STORAGE_ACCOUNT_URL = f"https://awstoolstorage.blob.core.windows.net"
+#CONTAINER_NAME = "billing-report-uploaded"
 
 blob_service_client = BlobServiceClient(
     account_url=STORAGE_ACCOUNT_URL,
     credential=DefaultAzureCredential()
 )
-
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/x2cf')
-def x2cf():
-    return render_template('x2cf.html')
 
 
 
@@ -180,6 +171,19 @@ def download_template(template):
         download_name=f"{template}_template.csv"
     )
     
+##----------- SAP to FTP ----------
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/x2cf')
+def x2cf():
+    return render_template('x2cf.html')
+
+@app.route('/consolidate')
+def consolidate():
+    return render_template('consolidated.html')
+
 
 
 @app.route('/favicon.ico')
@@ -376,7 +380,6 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))  # fallback to 8000 for local testing
     app.run(host='0.0.0.0', port=port)
     
-
 
 
 
