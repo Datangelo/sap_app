@@ -14,29 +14,16 @@ load_dotenv()
 app = Flask(__name__)
 
 # Configuration via environment variables
-#STORAGE_ACCOUNT_URL = os.environ.get("STORAGE_ACCOUNT_URL")
-#CONTAINER_NAME      = os.environ.get("CONTAINER_NAME")
-
-#STORAGE_ACCOUNT_URL="https://awstoolstorage.blob.core.windows.net"
-#CONTAINER_NAME="billing-report-uploaded"
-
-# Initialize blob service client
-#blob_service_client = BlobServiceClient(    account_url=STORAGE_ACCOUNT_URL,credential=DefaultAzureCredential())
+STORAGE_ACCOUNT_URL = os.environ.get("STORAGE_ACCOUNT_URL")
+CONTAINER_NAME = os.environ.get("CONTAINER_NAME")
 
 
-
-
-# Storage account info
-STORAGE_ACCOUNT_URL = "https://awstoolstorage.blob.core.windows.net"
-STORAGE_ACCOUNT_KEY = "B1WBV525CS5FV3CvglVxIzAckxRYEv6tFE2DtTNpSV/6T1x4+9XP4mWYBdpvmqO/BbVXFNqqZlWV+ASt7CqrJQ=="
-
-# Container you want to upload to
+STORAGE_ACCOUNT_URL = f"https://awstoolstorage.blob.core.windows.net"
 CONTAINER_NAME = "billing-report-uploaded"
 
-# Create blob service client
 blob_service_client = BlobServiceClient(
     account_url=STORAGE_ACCOUNT_URL,
-    credential=STORAGE_ACCOUNT_KEY
+    credential=DefaultAzureCredential()
 )
 
 
@@ -161,6 +148,7 @@ def download_csv():
 
     except Exception as e:
         return f"Error: {str(e)}", 500
+
     
     #----------- Templates ----------
 
