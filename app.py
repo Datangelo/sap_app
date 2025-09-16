@@ -5,7 +5,7 @@ import pandas as pd
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
 from dotenv import load_dotenv
-from awstool import run_awstool, apply_credit_adjustments,apply_po_adjustments,apply_exception,consolidation,get_blob_service_client
+from awstool import run_awstool, apply_credit_adjustments,apply_po_adjustments,apply_exception,consolidation
 from awstool import last_country, last_start_date, last_end_date  # import globals
 import csv
 
@@ -14,23 +14,14 @@ load_dotenv()
 app = Flask(__name__)
 
 # Configuration via environment variables
-STORAGE_ACCOUNT_URL = os.environ.get("STORAGE_ACCOUNT_URL")
-CONTAINER_NAME      = os.environ.get("CONTAINER_NAME")
-
-# Initialize blob service client
-blob_service_client = BlobServiceClient(
-    account_url=STORAGE_ACCOUNT_URL,
-    credential=DefaultAzureCredential()
-)
+#STORAGE_ACCOUNT_URL = os.environ.get("STORAGE_ACCOUNT_URL")
+#CONTAINER_NAME = os.environ.get("CONTAINER_NAME")
 
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+#STORAGE_ACCOUNT_URL = f"https://awstoolstorage.blob.core.windows.net"
+#CONTAINER_NAME = "billing-report-uploaded"
 
-@app.route('/x2cf')
-def x2cf():
-    return render_template('x2cf.html')
+#blob_service_client = BlobServiceClient(account_url=STORAGE_ACCOUNT_URL, credential=DefaultAzureCredential())
 
 
 
@@ -126,19 +117,15 @@ def download_csv():
         with open("latest_report.csv", "rb") as f:
             file_bytes = io.BytesIO(f.read())
 
-        # --- Upload to Azure Blob Storage ---
-        try:
-            blob_service = get_blob_service_client()
-            container_client = blob_service.get_container_client("billing-reports")
+        # --- Upload to Azure Blob ---
+        file_bytes.seek(0)  # reset pointer before upload
+        blob_client = blob_service_client.get_blob_client(
+            container=CONTAINER_NAME,
+            blob=filename
+        )
+        blob_client.upload_blob(file_bytes, overwrite=True)
 
-            # Upload in-memory bytes
-            file_bytes.seek(0)  # reset pointer before upload
-            container_client.upload_blob(name=filename, data=file_bytes, overwrite=True)
-            print(f"✅ Uploaded {filename} to Azure Blob Storage")
-        except Exception as be:
-            print("⚠️ Blob upload failed:", be)
-
-        # --- Return file to user (no reset, files remain locally) ---
+        # --- Return file to user ---
         file_bytes.seek(0)  # reset pointer again for download
         return send_file(
             file_bytes,
@@ -147,11 +134,9 @@ def download_csv():
             download_name=filename
         )
 
-    except FileNotFoundError:
-        return "No report available to download", 400
     except Exception as e:
-        print(traceback.format_exc())
-        return {"error": str(e)}, 500
+        return f"Error: {str(e)}", 500
+
     
     #----------- Templates ----------
 
@@ -183,6 +168,19 @@ def download_template(template):
         download_name=f"{template}_template.csv"
     )
     
+##----------- SAP to FTP ----------
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/x2cf')
+def x2cf():
+    return render_template('x2cf.html')
+
+@app.route('/consolidate')
+def consolidate():
+    return render_template('consolidated.html')
+
 
 
 @app.route('/favicon.ico')
@@ -379,7 +377,6 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))  # fallback to 8000 for local testing
     app.run(host='0.0.0.0', port=port)
     
-
 
 
 
