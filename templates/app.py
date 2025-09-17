@@ -167,6 +167,41 @@ def download_template(template):
         as_attachment=True,
         download_name=f"{template}_template.csv"
     )
+
+
+#---------------- Local Download (no Azure) ----------
+
+@app.route("/download_local_csv")
+def download_local_csv():
+    try:
+        # --- Load metadata ---
+        if os.path.exists("metadata.json"):
+            with open("metadata.json", "r") as f:
+                metadata = json.load(f)
+        else:
+            metadata = {}
+
+        country = metadata.get("country", "unknown")
+        start_fmt = metadata.get("start_date", "unknown").replace("-", "")
+        end_fmt = metadata.get("end_date", "unknown").replace("-", "")
+
+        filename = f"AWS_Billing_Raw_{country}_from_{start_fmt}_to_{end_fmt}.csv"
+
+        # --- Load CSV into memory ---
+        with open("latest_report.csv", "rb") as f:
+            file_bytes = io.BytesIO(f.read())
+
+        # --- Return file to user (no Blob upload) ---
+        file_bytes.seek(0)
+        return send_file(
+            file_bytes,
+            mimetype="text/csv",
+            as_attachment=True,
+            download_name=filename
+        )
+
+    except Exception as e:
+        return f"Error: {str(e)}", 500
     
 ##----------- SAP to FTP ----------
 @app.route('/')
@@ -377,6 +412,7 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))  # fallback to 8000 for local testing
     app.run(host='0.0.0.0', port=port)
     
+
 
 
 
