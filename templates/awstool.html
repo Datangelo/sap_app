@@ -29,6 +29,11 @@
 
     <button type="submit">Fetch Data from ION</button>
   </form>
+
+  <!-- Extra button for direct download -->
+  <form action="{{ url_for('download_local_csv') }}" method="get" style="margin-top:10px;">
+    <button type="submit">Download Raw Data (Local Only)</button>
+  </form>
 </div>
 
 <!-- Step 2a: Upload Exceptions -->
@@ -84,7 +89,7 @@
       <p style="color:red;">Error: {{ result.error }}</p>
     {% else %}
       <form action="{{ url_for('download_csv') }}" method="get">
-        <button type="submit">Download Full CSV</button>
+        <button type="submit">Download & Save to Azure</button>
       </form>
     {% endif %}
   </div>
