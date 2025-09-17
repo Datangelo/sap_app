@@ -226,6 +226,9 @@ def run_awstool(country: str, start_date: str, end_date: str):
 
         #Billing_report['Account'] = pd.to_numeric(Billing_report['Account'], errors='coerce').astype('Int64')
 
+        Billing_report["Seller Cost"] = pd.to_numeric(Billing_report["Seller Cost"], errors='coerce').round(2)
+        Billing_report["Customer Cost"] = pd.to_numeric(Billing_report["Customer Cost"], errors='coerce').round(2)
+
 
         Billing_report.to_csv("latest_report.csv", index=False)
 
