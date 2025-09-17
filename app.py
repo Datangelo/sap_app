@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from awstool import run_awstool, apply_credit_adjustments,apply_po_adjustments,apply_exception,consolidation
 from awstool import last_country, last_start_date, last_end_date  # import globals
 import csv
+import uuid
 
 load_dotenv() 
 
@@ -114,7 +115,9 @@ def download_csv():
         start_fmt = metadata.get("start_date", "unknown").replace("-", "")
         end_fmt = metadata.get("end_date", "unknown").replace("-", "")
 
-        filename = f"AWS_Billing_Report_{country}_from_{start_fmt}_to_{end_fmt}.csv"
+        unique_id = uuid.uuid4().hex[:8]  # 8-character random hex string
+
+        filename = f"AWS_Billing_Report_{country}_from_{start_fmt}_to_{end_fmt}_{unique_id}.csv"
 
         # --- Load CSV into memory ---
         with open("latest_report.csv", "rb") as f:
@@ -380,6 +383,7 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))  # fallback to 8000 for local testing
     app.run(host='0.0.0.0', port=port)
     
+
 
 
 
