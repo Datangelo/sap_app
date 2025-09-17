@@ -1,4 +1,4 @@
-import json, os, io, traceback
+import json, os, io, traceback, uuid
 from io import BytesIO
 from flask import Flask, request, send_file, jsonify, render_template, send_from_directory
 import pandas as pd
@@ -111,7 +111,10 @@ def download_csv():
         start_fmt = metadata.get("start_date", "unknown").replace("-", "")
         end_fmt = metadata.get("end_date", "unknown").replace("-", "")
 
-        filename = f"AWS_Billing_Report_{country}_from_{start_fmt}_to_{end_fmt}.csv"
+        unique_id = uuid.uuid4().hex[:8]  # 8-character random hex string
+        
+        
+        filename = f"AWS_Billing_Report_{country}_from_{start_fmt}_to_{end_fmt}_{unique_id}.csv"
 
         # --- Load CSV into memory ---
         with open("latest_report.csv", "rb") as f:
@@ -377,6 +380,7 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))  # fallback to 8000 for local testing
     app.run(host='0.0.0.0', port=port)
     
+
 
 
 
