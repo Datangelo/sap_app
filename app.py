@@ -1,13 +1,16 @@
 import json, os, io, traceback, uuid
 from io import BytesIO
-from flask import Flask, request, send_file, jsonify, render_template, send_from_directory
+from flask import Flask, request, send_file, jsonify, render_template, send_from_directory,Response
 import pandas as pd
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
 from dotenv import load_dotenv
-from awstool import run_awstool, apply_credit_adjustments,apply_po_adjustments,apply_exception,consolidation
-from awstool import last_country, last_start_date, last_end_date  # import globals
+from awstool import run_awstool, apply_credit_adjustments,apply_po_adjustments,apply_exception,consolidation, amend_sap_consolidation, get_sap_ids
+from awstool import last_country, last_start_date, last_end_date, sap_consolidation_csv
 import csv
+
+sap_consolidation_bytes = None
+
 
 load_dotenv() 
 
@@ -175,13 +178,52 @@ def download_local_csv():
     except Exception as e:
         return f"Error: {str(e)}", 500
 
-    
+    #-----sap consolidation download -----
+
+@app.route("/download_sap_consolidation")
+def download_sap_consolidation():
+    try:
+        # Ensure CSV exists by generating it
+        get_sap_ids()
+
+        with open(sap_consolidation_csv, "rb") as f:
+            file_bytes = io.BytesIO(f.read())
+
+        file_bytes.seek(0)
+        return send_file(
+            file_bytes,
+            mimetype="text/csv",
+            as_attachment=True,
+            download_name="SAP_Consolidation.csv"
+        )
+
+    except Exception as e:
+        return f"Error: {str(e)}", 500
+
+#-------Flask route for uploading sap consolidation file
+
+@app.route("/amend_sap_consolidation", methods=["POST"])
+def amend_sap_consolidation_route():
+    try:
+        if "file" not in request.files:
+            return "No file uploaded", 400
+
+        file = request.files["file"]
+
+        # db_password should come from your Key Vault function
+        result = amend_sap_consolidation(file)
+
+        if "error" in result:
+            return f"Error: {result['error']}", 500
+        else:
+            return result["message"], 200
+
+    except Exception as e:
+        return f"Error: {str(e)}", 500
+
 
 
     #----------- Templates ----------
-
-
-
 
 
 @app.route("/download_template/<template>")
@@ -212,6 +254,8 @@ def download_template(template):
         download_name=f"{template}_template.csv"
     )
     
+
+
 ##----------- SAP to FTP ----------
 @app.route('/')
 def index():

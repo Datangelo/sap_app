@@ -10,6 +10,8 @@ from azure.storage.blob import BlobServiceClient
 from azure.keyvault.secrets import SecretClient
 import traceback
 import numpy as np
+import pyodbc
+
 
 
 
@@ -20,7 +22,8 @@ last_country = None
 last_start_date = None
 last_end_date = None
 
-
+# Global CSV path
+sap_consolidation_csv = "sap_consolidation.csv"
 
 # -----------------------
 # Azure Key Vault Setup
@@ -36,6 +39,25 @@ country_cfg = {
     "BE": {"secret_id": "api-keys-BE", "AWS": 57272, "Account_ID": 301},
     "AT": {"secret_id": "api-keys-AT", "AWS": 57269, "Account_ID": 302},
     "ES": {"secret_id": "api-keys-ES", "AWS": 57271, "Account_ID": 394},
+    "CH": {"secret_id": "api-keys-CH", "AWS": 57632, "Account_ID": 306},
+    "CZ": {"secret_id": "api-keys-CZ", "AWS": 57633, "Account_ID": 2786},
+    "DE": {"secret_id": "api-keys-DE", "AWS": 57634, "Account_ID": 309},
+    "DK": {"secret_id": "api-keys-DK", "AWS": 57635, "Account_ID": 975},
+    "FI": {"secret_id": "api-keys-FI", "AWS": 57691, "Account_ID": 979},
+    "FR": {"secret_id": "api-keys-FR", "AWS": 57692, "Account_ID": 471},
+    "HR": {"secret_id": "api-keys-HR", "AWS": 57693, "Account_ID": 2957},
+    "HU": {"secret_id": "api-keys-HU", "AWS": 57694, "Account_ID": 305},
+    "IT": {"secret_id": "api-keys-IT", "AWS": 57695, "Account_ID": 645},
+    "NL": {"secret_id": "api-keys-NL", "AWS": 57696, "Account_ID": 303},
+    "NO": {"secret_id": "api-keys-NO", "AWS": 57697, "Account_ID": 1013},
+    "PL": {"secret_id": "api-keys-PL", "AWS": 57698, "Account_ID": 308},
+    "PT": {"secret_id": "api-keys-PT", "AWS": 57708, "Account_ID": 950},
+    "RO": {"secret_id": "api-keys-RO", "AWS": 57699, "Account_ID": 307},
+    "RS": {"secret_id": "api-keys-RS", "AWS": 57702, "Account_ID": 9950},
+    "SE": {"secret_id": "api-keys-SE", "AWS": 57703, "Account_ID": 808},
+    "SI": {"secret_id": "api-keys-SI", "AWS": 57707, "Account_ID": 7484},
+    "TR": {"secret_id": "api-keys-TR", "AWS": 57705, "Account_ID": 630},
+    "UK": {"secret_id": "api-keys-UK", "AWS": 57704, "Account_ID": 304}
 }
 
 emea_cfg = {
@@ -79,6 +101,19 @@ def refresh_token(cfg):
     )
 
     return new_access
+
+# -----------------------
+# Get database password
+# -----------------------
+def get_db_password():
+    """
+    Fetch database password from Azure Key Vault.
+    """
+    secret_value = secret_client.get_secret("database-password").value
+    return secret_value
+
+# Example usage
+db_password = get_db_password()
 
 # -----------------------
 # Main Function
@@ -207,6 +242,9 @@ def run_awstool(country: str, start_date: str, end_date: str):
             )
         else:
             Billing_report = df_country.copy()
+
+
+            
 
 
         last_country = country
@@ -526,7 +564,40 @@ def apply_po_adjustments(uploaded_file):
 
 
         # -----------------------------
-# New: function to add consolidation  to Billing_report
+# New: function to call SAP id with end customer consolidation 
+
+def get_sap_ids():
+    """
+    Query SAP IDs from SQL and save them as a local CSV for later download.
+    """
+    try:
+        # --- SQL connection ---
+        server = 'bicompute-dwh.database.windows.net'
+        database = 'db-cloudbi'
+        username = 'tdadmin'
+        driver = '{SQL Server}'
+        password= db_password
+
+        conn = pyodbc.connect(
+            f'DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password}'
+        )
+
+        query = "SELECT * FROM aws.end_customer"
+        sap_ids_df = pd.read_sql(query, conn)
+        conn.close()
+
+        # Format as consolidation DataFrame
+        consolidation_df = pd.DataFrame({"SAP ID": sap_ids_df['SAP_ID'].tolist()})
+
+        # Save to global CSV path
+        consolidation_df.to_csv(sap_consolidation_csv, index=False)
+
+
+    except Exception as e:
+        print(f"Error while building SAP consolidation report: {e}")
+
+
+
 # -----------------------------
     
 
@@ -548,28 +619,40 @@ def consolidation():
         end_date = metadata["end_date"]
 
 
-
-
-
         Billing_report = pd.read_csv("latest_report.csv", dtype={"Account": str})
 
-        special_consolidation = {"SAP ID": [
-            447538, 563032, 430330, 770487, 429505, 778985, 783006, 710254,
-            422480, 301250, 601691, 572483, 778402, 782581, 588334, 423826,
-            134005, 1003630, 1006910, 1003495, 412496, 439613, 689040, 
-            577302, 1000219, 432699, 105012, 435825, 434736, 451551, 732071, 
-            421842, 424494, 702179, 514159, 783872, 423784, 
-            429620, 427777, 785876, 583987, 441239, 425118, 430033, 
-            452530, 752099]}
-        
-        consolidation_df = pd.DataFrame(special_consolidation)
+
+        # Connection parameters
+        server = 'bicompute-dwh.database.windows.net'  # or your server name
+        database = 'db-cloudbi'
+        username = 'tdadmin'
+        password = db_password
+        driver = '{SQL Server}'
+
+        conn = pyodbc.connect(f'DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password}')
+
+        # Query only the SAP_ID column
+        query = "SELECT SAP_ID FROM aws.end_customer"
+
+        # Load into a DataFrame
+        sap_ids_df = pd.read_sql(query, conn)
+
+        # Optional: if you want a single column as a list for your consolidation
+        sap_ids_list = sap_ids_df['SAP_ID'].tolist()
+
+        # Build your consolidation DataFrame
+        consolidation_df = pd.DataFrame({"SAP ID": sap_ids_list})
+
+        query = "SELECT SAP_ID FROM aws.end_customer"
+        sap_ids_df = pd.read_sql(query, conn)
+        consolidation_df = pd.DataFrame({"SAP ID": sap_ids_df['SAP_ID'].tolist()})
 
         consolidation_df["Condition Creation/ Country"]="Creation By End Customer"
 
         consolidation_unique = consolidation_df[["SAP ID","Condition Creation/ Country"
                         ]].drop_duplicates()
         
-        consolidation_df['SAP ID'] = consolidation_df['SAP ID'].astype('Int64')
+        consolidation_unique['SAP ID'] = consolidation_unique['SAP ID'].astype('Int64')
 
 
         consolidation_unique['Condition Creation/ Country'] = (
@@ -725,6 +808,59 @@ def get_blob_service_client():
             account_url="https://awstoolstorage.blob.core.windows.net",
             credential=credential
         )
+    
+def amend_sap_consolidation(uploaded_file):
+    """
+    Replace aws.end_customer table content with values from uploaded CSV.
+    """
+    try:
+        # --- SQL connection ---
+        server = 'bicompute-dwh.database.windows.net'
+        database = 'db-cloudbi'
+        username = 'tdadmin'
+        driver = '{SQL Server}'
+        password= db_password
+
+        conn = pyodbc.connect(
+            f'DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password}'
+        )
+        cursor = conn.cursor()
+
+        # 1. Drop & recreate the table
+        cursor.execute("""
+            IF OBJECT_ID('aws.end_customer', 'U') IS NOT NULL
+                DROP TABLE aws.end_customer;
+            CREATE TABLE aws.end_customer (
+                SAP_ID NVARCHAR(50)
+            );
+        """)
+        conn.commit()
+
+        # 2. Load uploaded CSV into DataFrame
+        if uploaded_file.filename.endswith(".csv"):
+            sap_ids_df = pd.read_csv(uploaded_file)
+        elif uploaded_file.filename.endswith(".xlsx"):
+            sap_ids_df = pd.read_excel(uploaded_file)
+        else:
+            return {"error": "Unsupported file type. Please upload a CSV or XLSX."}
+
+        # Ensure column consistency
+        if "SAP ID" not in sap_ids_df.columns:
+            return {"error": "File must contain a column named 'SAP ID'."}
+
+        # 3. Insert new data
+        for sap_id in sap_ids_df["SAP ID"].dropna().astype(str).tolist():
+            cursor.execute("INSERT INTO aws.end_customer (SAP_ID) VALUES (?)", sap_id)
+
+        conn.commit()
+        conn.close()
+
+        return {"message": f"Table aws.end_customer refreshed with {len(sap_ids_df)} rows."}
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
 
     
 
