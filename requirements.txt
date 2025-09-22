@@ -1,9 +1,10 @@
 flask
-azure-identity
-azure-storage-blob
 gunicorn
 pandas
+numpy
 openpyxl
 python-dotenv
 azure-identity
+azure-storage-blob
 azure-keyvault-secrets
+pyodbc
