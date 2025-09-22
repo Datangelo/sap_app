@@ -15,6 +15,25 @@
       <option value="AT">Austria (AT)</option>
       <option value="BE">Belgium (BE)</option>
       <option value="ES">Spain (ES)</option>
+      <option value="CH">Switzerland (CH)</option>
+      <option value="CZ">Czech Republic (CZ)</option>
+      <option value="DE">Germany (DE)</option>
+      <option value="DK">Denmark (DK)</option>
+      <option value="FI">Finland (FI)</option>
+      <option value="FR">France (FR)</option>
+      <option value="HR">Croatia (HR)</option>
+      <option value="HU">Hungary (HU)</option>
+      <option value="IT">Italy (IT)</option>
+      <option value="NL">Netherlands (NL)</option>
+      <option value="NO">Norway (NO)</option>
+      <option value="PL">Poland (PL)</option>
+      <option value="PT">Portugal (PT)</option>
+      <option value="RO">Romania (RO)</option>
+      <option value="RS">Serbia (RS)</option>
+      <option value="SE">Sweden (SE)</option>
+      <option value="SI">Slovenia (SI)</option>
+      <option value="TR">Turkey (TR)</option>
+      <option value="UK">United Kingdom (UK)</option>
       <!-- add more -->
     </select>
     <br><br>
@@ -66,6 +85,21 @@
   <p><a href="{{ url_for('download_template', template='po') }}">Download PO Template</a></p>
 </div>
 
+<!-- Step 2d: SAP End Customer Consolidation -->
+<div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:8px;">
+  <h3>Step 2d: SAP End Customer Consolidation</h3>
+
+  <!-- Button to download all SAP numbers with end customer consolidation -->
+  <form action="{{ url_for('download_sap_consolidation') }}" method="get" style="margin-bottom:10px;">
+    <button type="submit">Download SAP EC Consolidation</button>
+  </form>
+
+  <!-- Button to amend SAP numbers (e.g. upload a file) -->
+  <form action="{{ url_for('amend_sap_consolidation_route') }}" method="post" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".csv,.xlsx" required>
+    <button type="submit">Amend SAP EC Consolidation</button>
+  </form>
+</div>
 
 
 <!-- Step 3: Consolidation -->
