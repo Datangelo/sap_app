@@ -581,7 +581,7 @@ def get_sap_ids():
         server = 'bicompute-dwh.database.windows.net'
         database = 'db-cloudbi'
         username = 'tdadmin'
-        driver = '{SQL Server}'
+        driver = '{ODBC Driver 18 for SQL Server}'
         password= db_password
 
         conn = pyodbc.connect(
@@ -633,7 +633,7 @@ def consolidation():
         database = 'db-cloudbi'
         username = 'tdadmin'
         password = db_password
-        driver = '{SQL Server}'
+        driver = '{ODBC Driver 18 for SQL Server}'
 
         conn = pyodbc.connect(f'DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password}')
 
@@ -826,7 +826,7 @@ def amend_sap_consolidation(uploaded_file):
         server = 'bicompute-dwh.database.windows.net'
         database = 'db-cloudbi'
         username = 'tdadmin'
-        driver = '{SQL Server}'
+        driver = '{ODBC Driver 18 for SQL Server}'
         password= db_password
 
         conn = pyodbc.connect(
@@ -881,6 +881,7 @@ def amend_sap_consolidation(uploaded_file):
 
 
     
+
 
 
 
