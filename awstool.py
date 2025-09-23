@@ -225,6 +225,9 @@ def run_awstool(country: str, start_date: str, end_date: str):
         report_json = json.loads(data)
         final_df = pd.read_csv(io.StringIO(report_json["results"]))
 
+        df_country['SAP ID (customer)'] = pd.to_numeric(df_country['SAP ID (customer)'], errors="coerce")  # convert invalid to NaN
+        df_country['SAP ID (customer)'] = df_country['SAP ID (customer)'].fillna(999999).astype(int)
+
 
         df_country['SAP ID (customer)'] = df_country['SAP ID (customer)'].astype('Int32')
         df_country['Cloud Account Number'] = df_country['Cloud Account Number'].astype(str).str.zfill(12)
@@ -266,6 +269,9 @@ def run_awstool(country: str, start_date: str, end_date: str):
 
         Billing_report["Seller Cost"] = pd.to_numeric(Billing_report["Seller Cost"], errors='coerce').round(2)
         Billing_report["Customer Cost"] = pd.to_numeric(Billing_report["Customer Cost"], errors='coerce').round(2)
+
+        Billing_report["SAP_ID"] = pd.to_numeric(Billing_report["SAP_ID"], errors="coerce")  # convert invalid to NaN
+        Billing_report["SAP_ID"] = Billing_report["SAP_ID"].fillna(999999).astype(int)
 
 
         Billing_report.to_csv("latest_report.csv", index=False)
@@ -640,6 +646,11 @@ def consolidation():
         # Optional: if you want a single column as a list for your consolidation
         sap_ids_list = sap_ids_df['SAP_ID'].tolist()
 
+        Billing_report["SAP_ID"] = Billing_report["SAP_ID"].replace("", pd.NA)  # turn empty strings into NaN
+        Billing_report["SAP_ID"] = Billing_report["SAP_ID"].fillna(000000)
+
+        Billing_report = Billing_report[Billing_report['SAP_ID'].notna()]
+
         # Build your consolidation DataFrame
         consolidation_df = pd.DataFrame({"SAP ID": sap_ids_list})
 
@@ -706,10 +717,7 @@ def consolidation():
         Billing_report["Billing period"] = billing_period_str
         Billing_report['Condition Creation/ Country'] = Billing_report['Condition Creation/ Country'].str.lower()
 
-        Billing_report["SAP_ID"] = Billing_report["SAP_ID"].replace("", pd.NA)  # turn empty strings into NaN
-        Billing_report["SAP_ID"] = Billing_report["SAP_ID"].fillna(000000)
-
-        Billing_report = Billing_report[Billing_report['SAP_ID'].notna()]
+        
 
         # Split DataFrames
         reseller_df = Billing_report[Billing_report['Condition Creation/ Country'] == 'creation by reseller'].drop(columns=["End_Customer"])
