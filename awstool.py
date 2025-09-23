@@ -235,7 +235,7 @@ def run_awstool(country: str, start_date: str, end_date: str):
 
         if final_df is not None:
 
-            final_df = final_df[final_df['Account Number'].notna() & (final_df['Account Number'] != "")]
+            final_df = final_df[final_df["Assigned Customer Company"].notna() & (final_df["Assigned Customer Company"] != "")]
             
             final_df['Account Number'] = final_df['Account Number'].astype(str)
             
@@ -885,6 +885,7 @@ def amend_sap_consolidation(uploaded_file):
 
 
     
+
 
 
 
