@@ -234,8 +234,11 @@ def run_awstool(country: str, start_date: str, end_date: str):
 
 
         if final_df is not None:
-            final_df['Account Number'] = final_df['Account Number'].astype(str)
+
             final_df = final_df[final_df['Account Number'].notna() & (final_df['Account Number'] != "")]
+            
+            final_df['Account Number'] = final_df['Account Number'].astype(str)
+            
             global Billing_report, last_country, last_start_date, last_end_date
             Billing_report = pd.merge(
                 df_country,
@@ -882,6 +885,7 @@ def amend_sap_consolidation(uploaded_file):
 
 
     
+
 
 
 
