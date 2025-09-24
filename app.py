@@ -281,37 +281,47 @@ def favicon():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    uploaded = request.files.get('file')
-    if not uploaded:
-        return "No file uploaded.", 400
+    try:
+        uploaded = request.files.get('file')
+        if not uploaded:
+            return jsonify({'error': 'No file uploaded'}), 400
 
-    raw_bytes = uploaded.read()
-    df = pd.read_excel(BytesIO(raw_bytes),
-                       engine='openpyxl',
-                       dtype=str)
+        raw_bytes = uploaded.read()
+        df = pd.read_excel(BytesIO(raw_bytes),
+                           engine='openpyxl',
+                           dtype=str)
 
-    transformed_df = transform_sap(df)
-    
-    #csv_bytes = transformed_df.to_csv(index=False,header=False)
+        # transform_sap may raise ValueError
+        transformed_df = transform_sap(df)
 
-    # Use an in-memory buffer instead of writing to disk
-    buffer = BytesIO()
-    for line in transformed_df["merged"]:
-        buffer.write((line + "\n").encode("utf-8"))
+        buffer = BytesIO()
+        for line in transformed_df["merged"]:
+            buffer.write((line + "\n").encode("utf-8"))
+        csv_bytes = buffer.getvalue()
 
-    csv_bytes = buffer.getvalue()
+        base = uploaded.filename.rsplit('.', 1)[0]
+        transformed_name = f"{base}_FTP.csv"
 
+        blob = blob_service_client.get_blob_client(
+            container=CONTAINER_NAME,
+            blob=transformed_name
+        )
+        blob.upload_blob(csv_bytes, overwrite=True)
 
-    base = uploaded.filename.rsplit('.', 1)[0]
-    transformed_name = f"{base}_FTP.csv"
+        return jsonify({'download_url': f'/download/{transformed_name}'}), 200
 
-    blob = blob_service_client.get_blob_client(
-        container=CONTAINER_NAME,
-        blob=transformed_name
-    )
-    blob.upload_blob(csv_bytes, overwrite=True)
+    except ValueError:
+        # Specific friendly message just for this route
+        return jsonify({
+            'error': "🚨 Data consistency issue detected: "
+                     "Values in orange-highlighted columns must be identical "
+                     "for rows sharing the same Header ID. "
+                     "Please review and correct your file."
+        }), 400
 
-    return jsonify({'download_url': f'/download/{transformed_name}'}), 200
+    except Exception as e:
+        # Fallback just for /upload
+        return jsonify({'error': f'Unexpected server error: {str(e)}'}), 500
 
 @app.route('/download/<filename>')
 def download_file(filename):
@@ -465,6 +475,7 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))  # fallback to 8000 for local testing
     app.run(host='0.0.0.0', port=port)
     
+
 
 
 
