@@ -21,8 +21,8 @@ STORAGE_ACCOUNT_URL = os.environ.get("STORAGE_ACCOUNT_URL")
 CONTAINER_NAME = os.environ.get("CONTAINER_NAME")
 
 
-STORAGE_ACCOUNT_URL = f"https://awstoolstorage.blob.core.windows.net"
-CONTAINER_NAME = "billing-report-uploaded"
+#STORAGE_ACCOUNT_URL = f"https://awstoolstorage.blob.core.windows.net"
+#CONTAINER_NAME = "billing-report-uploaded"
 
 blob_service_client = BlobServiceClient(account_url=STORAGE_ACCOUNT_URL, credential=DefaultAzureCredential())
 
@@ -475,6 +475,7 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))  # fallback to 8000 for local testing
     app.run(host='0.0.0.0', port=port)
     
+
 
 
 
